@@ -1,0 +1,29 @@
+# Integración continua: en cada push y pull request se revisa el estilo con ruff
+# y se corren las pruebas de tests/ (usan datos sintéticos, no descargan nada).
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint-y-pruebas:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Obtener el código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instalar dependencias
+        run: make requirements
+
+      - name: Revisar estilo con ruff
+        run: ruff check
+
+      - name: Correr pruebas con pytest
+        run: make test

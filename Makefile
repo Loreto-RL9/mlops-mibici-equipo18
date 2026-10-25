@@ -61,10 +61,39 @@ create_environment:
 #################################################################################
 
 
-## Make dataset
+## Descargar los datos crudos de MiBici (12 meses + catálogo de estaciones)
+.PHONY: download
+download:
+	$(PYTHON_INTERPRETER) -m mibici.dataset download
+
+## Limpiar los viajes y versionar v0 (crudo) y v1 (limpio) en MLflow
 .PHONY: data
-data: requirements
-	$(PYTHON_INTERPRETER) mibici/dataset.py
+data:
+	$(PYTHON_INTERPRETER) -m mibici.dataset clean
+
+## Panel de demanda estación x hora (v2) y dataset listo para modelar (v3)
+.PHONY: features
+features:
+	$(PYTHON_INTERPRETER) -m mibici.features
+
+## Generar las figuras del EDA en reports/figures
+.PHONY: plots
+plots:
+	$(PYTHON_INTERPRETER) -m mibici.plots
+
+## Líneas base sobre v3 (experimento mibici-fase1-baseline)
+.PHONY: baseline
+baseline:
+	$(PYTHON_INTERPRETER) -m mibici.modeling.train
+
+## Pipeline completo de la Fase 1
+.PHONY: pipeline
+pipeline: download data features plots baseline
+
+## Abrir la interfaz de MLflow en http://127.0.0.1:8080
+.PHONY: mlflow-ui
+mlflow-ui:
+	mlflow ui --backend-store-uri sqlite:///mlflow.db --port 8080
 
 
 #################################################################################

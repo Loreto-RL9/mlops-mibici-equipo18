@@ -1,0 +1,13 @@
+{
+  "filas_iniciales": 4497877,
+  "duplicados": 758,
+  "fecha_invalida": 0,
+  "duracion_no_positiva": 3791,
+  "arranque_fallido": 162225,
+  "duracion_menor_1min": 14983,
+  "duracion_mayor_180min": 510,
+  "fuera_de_horario": 100,
+  "estacion_fuera_de_catalogo": 3853,
+  "anio_nacimiento_a_nulo": 300,
+  "filas_finales": 4311657
+}

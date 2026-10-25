@@ -1,0 +1,32 @@
+[build-system]
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "mibici"
+version = "0.0.1"
+description = "Predicci\u00f3n de demanda horaria por estaci\u00f3n del sistema MiBici (Guadalajara) con pr\u00e1cticas de MLOps."
+authors = [
+  { name = "Equipo 18 - TC5044.10 (Tec de Monterrey)" },
+]
+license = { file = "LICENSE" }
+readme = "README.md"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License"
+]
+requires-python = "~=3.11.0"
+
+
+[tool.ruff]
+line-length = 99
+src = ["mibici"]
+include = ["pyproject.toml", "mibici/**/*.py"]
+
+[tool.ruff.lint]
+extend-select = ["I"]  # Add import sorting
+
+[tool.ruff.lint.isort]
+known-first-party = ["mibici"]
+force-sort-within-sections = true
+

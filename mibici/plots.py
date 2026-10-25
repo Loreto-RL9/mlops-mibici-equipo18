@@ -39,7 +39,7 @@ RULE_LABELS = {
     "estacion_fuera_de_catalogo": "Estación fuera del catálogo",
 }
 plt.rcParams.update({"figure.dpi": 150, "axes.spines.top": False, "axes.spines.right": False,
-                     "axes.titleweight": "bold", "axes.titlesize": 12, "font.size": 10})  # fmt: skip
+                     "axes.titleweight": "bold", "axes.titlesize": 13, "font.size": 11.5})  # fmt: skip
 
 
 def save(fig, name: str) -> None:
@@ -58,6 +58,7 @@ def plot_cleaning(report: dict) -> None:
     ax.set_title(f"Viajes eliminados por regla ({removed:,} en total, "
                  f"{100 * removed / report['filas_iniciales']:.1f} %)")  # fmt: skip
     ax.set_xlabel("viajes")
+    ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(50_000))
     ax.xaxis.set_major_formatter(matplotlib.ticker.StrMethodFormatter("{x:,.0f}"))
     ax.set_xlim(0, rules[-1][0] * 1.18)
     save(fig, "fig1_limpieza.png")
@@ -82,10 +83,10 @@ def plot_duration(raw: pd.DataFrame) -> None:
 
 def plot_monthly(trips: pd.DataFrame) -> None:
     monthly = trips.groupby(trips["inicio"].dt.to_period("M")).size()
-    fig, ax = plt.subplots(figsize=(7, 3.2))
-    labels = [f"{MONTHS[p.month - 1]}\n{p.year % 100}" for p in monthly.index]
+    fig, ax = plt.subplots(figsize=(5, 3.4))
+    labels = [MONTHS[p.month - 1] for p in monthly.index]
     ax.bar(labels, monthly.values / 1000, color=ACCENT)
-    ax.set_title("Viajes limpios por mes (miles)")
+    ax.set_title("Viajes limpios por mes (oct 2025 – sep 2026)")
     ax.set_ylabel("miles de viajes")
     save(fig, "fig3_viajes_mes.png")
 
@@ -105,7 +106,7 @@ def plot_heatmap(panel: pd.DataFrame) -> None:
 
 def plot_demand_distribution(panel: pd.DataFrame) -> None:
     counts = panel["salidas"].clip(upper=15).value_counts(normalize=True).sort_index() * 100
-    fig, ax = plt.subplots(figsize=(7, 3.2))
+    fig, ax = plt.subplots(figsize=(6.4, 3.4))
     ax.bar(counts.index, counts.values, color=[RED] + [ACCENT] * (len(counts) - 1))
     ax.set_xticks(range(16), [str(i) for i in range(15)] + ["15+"])
     ax.set_title(f"Salidas por estación-hora: {counts.iloc[0]:.0f} % de las horas son cero")
@@ -119,7 +120,7 @@ def plot_top_stations(trips: pd.DataFrame, stations: pd.DataFrame, n: int = 15) 
     names = stations.set_index("estacion_id")["nombre"].str.replace(r"^\S+\s", "", regex=True)
     top = total.head(n)[::-1]
     share = 100 * total.head(int(0.2 * len(total))).sum() / total.sum()
-    fig, ax = plt.subplots(figsize=(7, 4.2))
+    fig, ax = plt.subplots(figsize=(6.6, 4.4))
     ax.barh(names.reindex(top.index).str.slice(0, 38), top.values / 1000, color=ACCENT)
     ax.set_title(f"Top {n} estaciones por salidas (el 20 % de estaciones genera {share:.0f} %)")
     ax.set_xlabel("miles de salidas en 12 meses")
@@ -127,7 +128,7 @@ def plot_top_stations(trips: pd.DataFrame, stations: pd.DataFrame, n: int = 15) 
 
 
 def plot_pca(pca, comps: pd.DataFrame, stations: pd.DataFrame, trips: pd.DataFrame) -> None:
-    fig, axes = plt.subplots(1, 2, figsize=(10, 3.4), gridspec_kw={"width_ratios": [1.6, 1]})
+    fig, axes = plt.subplots(1, 2, figsize=(9.5, 3.6), gridspec_kw={"width_ratios": [1.6, 1]})
     ax = axes[0]
     for i, color in [(0, ACCENT), (1, RED)]:
         ax.plot(pca.components_[i], color=color, label=f"PC{i + 1}")
@@ -152,7 +153,7 @@ def plot_pca(pca, comps: pd.DataFrame, stations: pd.DataFrame, trips: pd.DataFra
 
     geo = stations.set_index("estacion_id").join(comps["pc1"], how="inner")
     geo["salidas"] = trips["origen_id"].value_counts()
-    fig, ax = plt.subplots(figsize=(6.2, 5.6))
+    fig, ax = plt.subplots(figsize=(5.6, 5.4))
     lim = np.abs(geo["pc1"]).quantile(0.95)
     sc = ax.scatter(geo["lon"], geo["lat"], c=geo["pc1"], cmap=DIVERGING, vmin=-lim, vmax=lim,
                     s=8 + geo["salidas"] / geo["salidas"].max() * 120, edgecolor="none")  # fmt: skip

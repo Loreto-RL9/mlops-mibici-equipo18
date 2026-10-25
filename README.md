@@ -28,7 +28,7 @@ calidad y la justificación de cada regla de limpieza: [`references/diccionario_
 ```bash
 python -m venv .venv && source .venv/bin/activate
 make requirements      # instala dependencias y el paquete mibici en modo editable
-make pipeline          # download -> data (v0, v1) -> features (v2, v3) -> plots -> baseline
+make pipeline          # test -> download -> data (v0, v1) -> features (v2, v3) -> plots -> baseline
 make test              # pruebas con datos sintéticos (no requieren descargar nada)
 make mlflow-ui         # http://127.0.0.1:8080
 ```
@@ -45,7 +45,7 @@ en v1, el reporte de limpieza).
 |---|---|---:|---:|
 | v0 `viajes-v0` | 12 CSV mensuales concatenados, sin cambios | 4,497,877 | 8 |
 | v1 `viajes-v1` | Tipos corregidos y 8 reglas de limpieza (−4.1 %) | 4,311,657 | 9 |
-| v2 `demanda-v2` | Panel estación × hora (horas de servicio), calendario, festivos, rezagos | 2,870,312 | 19 |
+| v2 `demanda-v2` | Panel estación-hora (horas de servicio), calendario, festivos, rezagos | 2,870,312 | 19 |
 | v3 `demanda-v3` | One-hot de municipio, 15 componentes PCA, escalado con train, partición temporal | 2,804,652 | 35 |
 
 Partición temporal de v3: entrenamiento oct 2025 a jun 2026 (1,973,154 filas), validación jul y ago 2026
@@ -53,22 +53,27 @@ Partición temporal de v3: entrenamiento oct 2025 a jun 2026 (1,973,154 filas), 
 
 ## Línea base (experimento `mibici-fase1-baseline`)
 
-| Modelo | MAE validación | RMSE validación |
-|---|---:|---:|
-| Persistencia semanal (misma hora, semana anterior) | 1.014 | 1.832 |
-| Media de las 24 h previas | 1.082 | 1.890 |
-| HistGradientBoosting con pérdida Poisson | **0.849** | **1.400** |
+Se evalúan dos horizontes en validación (jul y ago 2026). En 1 h el modelo puede usar la demanda de la hora
+anterior; en 24 h solo usa rezagos de 24 h o más, como un pronóstico hecho la noche anterior.
 
-El modelo simple sobre v3 reduce el MAE 16.3 % frente a la persistencia semanal. Es el punto de partida de la
-Fase 2, no el modelo final.
+| Horizonte | Modelo | MAE | RMSE |
+|---|---|---:|---:|
+| 1 h | Persistencia (hora anterior) | 1.127 | 1.981 |
+| 1 h | HistGradientBoosting, pérdida Poisson | **0.849** | **1.400** |
+| 24 h | Persistencia (mismo momento de ayer) | 1.093 | 2.050 |
+| 24 h | Persistencia semanal (misma hora, semana anterior) | 1.014 | 1.832 |
+| 24 h | HistGradientBoosting, pérdida Poisson | **0.875** | **1.401** |
+
+El modelo simple reduce el MAE 24.7 % en 1 h y 13.7 % en 24 h frente a la mejor persistencia de cada horizonte.
+Es el punto de partida de la Fase 2, no el modelo final.
 
 ## Estructura del proyecto
 
 ```
-├── Makefile             <- download, data, features, plots, baseline, pipeline, test, lint, mlflow-ui
+├── Makefile             <- test, download, data, features, plots, baseline, pipeline, lint, mlflow-ui
 ├── references/          <- ML Canvas y diccionario de datos con las reglas de limpieza
 ├── reports/
-│   ├── figures/         <- Figuras del EDA generadas por mibici/plots.py
+│   ├── figures/         <- Figuras del EDA (también en MLflow, run eda-figuras)
 │   └── reporte_limpieza.json   <- Viajes eliminados por regla (también en MLflow)
 ├── tests/test_data.py   <- Pruebas del pipeline
 ├── data/                <- raw, interim, processed (no se versiona en git; se regenera con make)

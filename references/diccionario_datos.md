@@ -33,21 +33,26 @@ Datos abiertos de MiBici, el sistema de bicicleta pública del Área Metropolita
 
 ## Hallazgos de calidad en los datos crudos (4,497,877 viajes)
 
-* El sistema no opera entre la 1 y las 5 h: solo hay 100 salidas en ese horario en 12 meses.
+* El sistema no opera de 1:00 a 4:59: solo hay 120 salidas registradas en ese horario en 12 meses.
 
 * El archivo de enero de 2026 viene en **latin-1**; los otros 11 meses, en UTF-8. El lector prueba ambos.
 * 758 filas duplicadas exactas (mismo `viaje_id`).
 * 3,791 viajes con duración cero o negativa.
 * 295,263 viajes que regresan a la misma estación; 164,384 duran menos de 2 minutos (arranques fallidos).
-* Duración mediana de 9.4 min; máximo de 5,920 min (4 días).
+* Duración mediana de 9.35 min; máximo de 5,920 min (4 días).
 * 534 años de nacimiento no numéricos y 319 anteriores a 1930 (incluso el año 199).
 * 32,982 registros con género `NULL`.
-* Viajes con estaciones que no están en el catálogo actual: 1,960 de origen y 2,123 de destino.
-* La estación 194 (Av. Vallarta / Av. de Los Arcos) registra picos de más de 100 salidas por hora
-  el primer sábado de cada mes, entre 20 y 21 h. El patrón es recurrente y compatible con un evento
-  ciclista nocturno, así que **se conserva** como demanda real.
+* Viajes con estaciones que no están en el catálogo actual: 3,954 (1,960 por el origen y 2,123 por el
+  destino; algunos fallan en ambos).
+* La estación 194 (Av. Vallarta / Av. de Los Arcos) registra picos de 90 a 143 salidas por hora el
+  primer sábado del mes, entre 20 y 22 h, en 7 de los 12 meses. El patrón es recurrente y compatible con un
+  evento ciclista nocturno, así que **se conserva** como demanda real.
 
 ## Reglas de limpieza (en este orden; `mibici/dataset.py`, clase `TripCleaner`)
+
+Las reglas se aplican en orden y cada una cuenta solo los viajes que quedaban después de las anteriores.
+Por eso algunos conteos son menores que los del perfilado crudo (por ejemplo, 162,225 arranques fallidos
+frente a 164,384, porque los duplicados y las duraciones cero o negativas ya se habían quitado).
 
 | # | Regla | Viajes eliminados | Justificación |
 |---|---|---:|---|
@@ -57,7 +62,7 @@ Datos abiertos de MiBici, el sistema de bicicleta pública del Área Metropolita
 | 4 | Misma estación y < 2 min | 162,225 | El usuario sacó y devolvió la bici: no es demanda real de viaje |
 | 5 | Duración < 1 min | 14,983 | Registros técnicos; no da tiempo de llegar a otra estación |
 | 6 | Duración > 180 min | 510 | Bici mal anclada o incidencia del sistema (0.01 %) |
-| 7 | Salida entre la 1 y las 5 h | 100 | El sistema no opera en ese horario (0.002 % de los viajes) |
+| 7 | Salida de 1:00 a 4:59 | 100 | El sistema no opera en ese horario (0.002 % de los viajes) |
 | 8 | Estación fuera del catálogo | 3,853 | No hay ubicación ni capacidad para esas estaciones |
 | | **Total** | **186,220 (4.1 %)** | Quedan **4,311,657** viajes |
 
@@ -71,11 +76,11 @@ condición falla, el pipeline se detiene.
 
 ## Panel de demanda (v2) y dataset para modelar (v3)
 
-* **Unidad de análisis:** estación × hora. **Objetivo:** `salidas`, el número de viajes que inician en la estación
+* **Unidad de análisis:** estación-hora. **Objetivo:** `salidas`, el número de viajes que inician en la estación
   durante esa hora.
 * Las horas sin viajes cuentan como 0, pero **solo dentro del periodo activo** de cada estación (de su primera a su
   última salida), para no inventar ceros antes de su apertura o después de su retiro.
-* Las horas sin servicio (1 a 4 h) se quitan del panel **después** de calcular los rezagos, para que el rezago de
+* Las horas sin servicio (1:00 a 4:59) se quitan del panel **después** de calcular los rezagos, para que el rezago de
   24 h siga apuntando a la misma hora del día anterior. El panel queda en 2,870,312 estación-horas de 469 estaciones.
 * Variables: `hora_dia`, `dia_semana`, `fin_de_semana`, `festivo` (calendario oficial de México, librería
   `holidays`), codificación cíclica (`hora_sin`, `hora_cos`, `dia_sin`, `dia_cos`), `capacidad`, `lat`, `lon`,

@@ -14,6 +14,7 @@ import matplotlib.ticker
 matplotlib.use("Agg")
 from matplotlib.colors import LinearSegmentedColormap
 import matplotlib.pyplot as plt
+import mlflow
 import numpy as np
 import pandas as pd
 import typer
@@ -35,7 +36,7 @@ RULE_LABELS = {
     "arranque_fallido": "Misma estación y < 2 min",
     "duracion_menor_1min": "Duración < 1 min",
     "duracion_mayor_180min": "Duración > 180 min",
-    "fuera_de_horario": "Fuera de horario (1–4 h)",
+    "fuera_de_horario": "Fuera de horario (1:00–4:59)",
     "estacion_fuera_de_catalogo": "Estación fuera del catálogo",
 }
 plt.rcParams.update({"figure.dpi": 150, "axes.spines.top": False, "axes.spines.right": False,
@@ -75,15 +76,16 @@ def plot_duration(raw: pd.DataFrame) -> None:
     for x, label in [(config.MIN_DURATION_MIN, "1 min"), (config.MAX_DURATION_MIN, "180 min")]:
         ax.axvline(x, color=RED, ls="--", lw=1)
         ax.text(x * 1.1, ax.get_ylim()[1] * 0.9, label, color=RED, fontsize=9)
-    ax.set_title(f"Duración de los viajes crudos (mediana {dur.median():.1f} min)")
+    ax.set_title(f"Duración de los viajes crudos (mediana {dur.median():.2f} min)")
     ax.set_xlabel("minutos (escala log)")
     ax.set_ylabel("viajes")
+    ax.yaxis.set_major_formatter(matplotlib.ticker.StrMethodFormatter("{x:,.0f}"))
     save(fig, "fig2_duracion.png")
 
 
 def plot_monthly(trips: pd.DataFrame) -> None:
     monthly = trips.groupby(trips["inicio"].dt.to_period("M")).size()
-    fig, ax = plt.subplots(figsize=(5, 3.4))
+    fig, ax = plt.subplots(figsize=(4.4, 3.2))
     labels = [MONTHS[p.month - 1] for p in monthly.index]
     ax.bar(labels, monthly.values / 1000, color=ACCENT)
     ax.set_title("Viajes limpios por mes (oct 2025 – sep 2026)")
@@ -120,9 +122,9 @@ def plot_top_stations(trips: pd.DataFrame, stations: pd.DataFrame, n: int = 15) 
     names = stations.set_index("estacion_id")["nombre"].str.replace(r"^\S+\s", "", regex=True)
     top = total.head(n)[::-1]
     share = 100 * total.head(int(0.2 * len(total))).sum() / total.sum()
-    fig, ax = plt.subplots(figsize=(6.6, 4.4))
-    ax.barh(names.reindex(top.index).str.slice(0, 38), top.values / 1000, color=ACCENT)
-    ax.set_title(f"Top {n} estaciones por salidas (el 20 % de estaciones genera {share:.0f} %)")
+    fig, ax = plt.subplots(figsize=(6.0, 4.8))
+    ax.barh(names.reindex(top.index).str.slice(0, 30), top.values / 1000, color=ACCENT)
+    ax.set_title(f"Top {n} estaciones (20 % de las estaciones = {share:.0f} % de salidas)")
     ax.set_xlabel("miles de salidas en 12 meses")
     save(fig, "fig6_top_estaciones.png")
 
@@ -137,10 +139,12 @@ def plot_pca(pca, comps: pd.DataFrame, stations: pd.DataFrame, trips: pd.DataFra
     ticks = [i for i, n in enumerate(names) if int(n[-2:]) in (6, 12, 18)]
     ax.set_xticks(ticks, [f"{int(names[i][-2:])}h" for i in ticks])
     ax.axvline(split - 0.5, color=GRAY, lw=1)
-    ax.text(1, ax.get_ylim()[1] * 0.9, "entre semana", color=GRAY)
-    ax.text(split + 1, ax.get_ylim()[1] * 0.9, "fin de semana", color=GRAY)
+    low, high = ax.get_ylim()
+    ax.set_ylim(low, high + 0.3 * (high - low))  # espacio para las etiquetas
+    for x, label in [(1, "entre semana"), (split + 1, "fin de semana")]:
+        ax.text(x, high + 0.12 * (high - low), label, color=GRAY)
     ax.set_title("Cargas de los componentes sobre el perfil horario")
-    ax.legend(frameon=False)
+    ax.legend(frameon=False, loc="lower right")
     ax = axes[1]
     ratio = 100 * pca.explained_variance_ratio_
     ax.bar(range(1, len(ratio) + 1), ratio.cumsum(), color=ACCENT)
@@ -153,15 +157,14 @@ def plot_pca(pca, comps: pd.DataFrame, stations: pd.DataFrame, trips: pd.DataFra
 
     geo = stations.set_index("estacion_id").join(comps["pc1"], how="inner")
     geo["salidas"] = trips["origen_id"].value_counts()
-    fig, ax = plt.subplots(figsize=(5.6, 5.4))
+    fig, ax = plt.subplots(figsize=(4.8, 5.0))
     lim = np.abs(geo["pc1"]).quantile(0.95)
     sc = ax.scatter(geo["lon"], geo["lat"], c=geo["pc1"], cmap=DIVERGING, vmin=-lim, vmax=lim,
                     s=8 + geo["salidas"] / geo["salidas"].max() * 120, edgecolor="none")  # fmt: skip
-    fig.colorbar(sc, ax=ax, label="PC1 (+ pico vespertino, − pico matutino)", shrink=0.8)
+    fig.colorbar(sc, ax=ax, label="PC1: + salidas de tarde, − de mañana", shrink=0.75)
     ax.set_title("PC1 por estación (tamaño = salidas)")
-    ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(4))
-    ax.set_xlabel("longitud")
-    ax.set_ylabel("latitud")
+    ax.set_xticks([])
+    ax.set_yticks([])
     ax.set_aspect("equal")
     save(fig, "fig8_mapa_pc1.png")
 
@@ -183,7 +186,14 @@ def main():
     plot_demand_distribution(panel)
     plot_top_stations(trips, stations)
     plot_pca(pca, comps, stations, trips)
-    logger.success(f"Figuras en {config.FIGURES_DIR}")
+
+    # Las figuras también quedan versionadas en MLflow como artefactos del EDA
+    mlflow.set_tracking_uri(config.MLFLOW_TRACKING_URI)
+    mlflow.set_experiment(config.MLFLOW_EXPERIMENT)
+    with mlflow.start_run(run_name="eda-figuras"):
+        mlflow.set_tags({"etapa": "EDA", "datos": "viajes-v1, demanda-v2"})
+        mlflow.log_artifacts(str(config.FIGURES_DIR), artifact_path="figuras")
+    logger.success(f"Figuras en {config.FIGURES_DIR} y en MLflow (run eda-figuras)")
 
 
 if __name__ == "__main__":

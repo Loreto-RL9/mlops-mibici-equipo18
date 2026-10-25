@@ -1,6 +1,13 @@
 # Data
 /data/
 
+# MLflow (base de datos local y artefactos) y modelos generados
+mlflow.db
+mlruns/
+mlartifacts/
+models/*
+!models/.gitkeep
+
 # Mac OS-specific storage files
 .DS_Store
 

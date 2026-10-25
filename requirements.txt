@@ -1,11 +1,15 @@
+holidays
 ipython
+joblib
 jupyterlab
 loguru
 matplotlib
+mlflow>=3.0
 notebook
 numpy
-pandas
+pandas>=2.2
 pip
+pyarrow
 pytest
 python-dotenv
 ruff

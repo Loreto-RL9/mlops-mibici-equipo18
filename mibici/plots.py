@@ -88,6 +88,7 @@ def plot_monthly(trips: pd.DataFrame) -> None:
     fig, ax = plt.subplots(figsize=(4.4, 3.2))
     labels = [MONTHS[p.month - 1] for p in monthly.index]
     ax.bar(labels, monthly.values / 1000, color=ACCENT)
+    ax.tick_params(axis="x", labelrotation=60)
     ax.set_title("Viajes limpios por mes (oct 2025 – sep 2026)")
     ax.set_ylabel("miles de viajes")
     save(fig, "fig3_viajes_mes.png")
@@ -122,7 +123,7 @@ def plot_top_stations(trips: pd.DataFrame, stations: pd.DataFrame, n: int = 15) 
     names = stations.set_index("estacion_id")["nombre"].str.replace(r"^\S+\s", "", regex=True)
     top = total.head(n)[::-1]
     share = 100 * total.head(int(0.2 * len(total))).sum() / total.sum()
-    fig, ax = plt.subplots(figsize=(6.0, 4.8))
+    fig, ax = plt.subplots(figsize=(6.8, 4.2))
     ax.barh(names.reindex(top.index).str.slice(0, 30), top.values / 1000, color=ACCENT)
     ax.set_title(f"Top {n} estaciones (20 % de las estaciones = {share:.0f} % de salidas)")
     ax.set_xlabel("miles de salidas en 12 meses")

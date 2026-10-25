@@ -34,6 +34,7 @@ def raw():
         raw_trip(6, "2026-01-05 12:00:00", "2026-01-05 12:20:00", destino=99),  # no existe
         raw_trip(7, "2026-01-05 13:00:00", "2026-01-05 13:10:00", genero="NULL", anio="199"),
         raw_trip(8, "2026-01-05 03:10:00", "2026-01-05 03:25:00"),  # sistema cerrado
+        raw_trip(9, "2026-01-05 14:00:00", "sin fecha"),  # fecha no interpretable
     ])  # fmt: skip
 
 
@@ -46,7 +47,7 @@ def test_cleaner_applies_each_rule(raw):
     cleaner = TripCleaner(STATIONS)
     clean = cleaner.clean(raw)
     assert clean["viaje_id"].tolist() == [1, 7]
-    for rule in ["duplicados", "duracion_no_positiva", "arranque_fallido",
+    for rule in ["duplicados", "fecha_invalida", "duracion_no_positiva", "arranque_fallido",
                  "duracion_menor_1min", "duracion_mayor_180min", "fuera_de_horario",
                  "estacion_fuera_de_catalogo"]:  # fmt: skip
         assert cleaner.report[rule] == 1, rule

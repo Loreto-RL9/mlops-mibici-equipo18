@@ -3,7 +3,6 @@
 #################################################################################
 
 PROJECT_NAME = mlops-mibici-equipo18
-PYTHON_VERSION = 3.11
 PYTHON_INTERPRETER = python
 
 #################################################################################
@@ -16,8 +15,6 @@ PYTHON_INTERPRETER = python
 requirements:
 	$(PYTHON_INTERPRETER) -m pip install -U pip
 	$(PYTHON_INTERPRETER) -m pip install -r requirements.txt
-	
-
 
 
 ## Delete all compiled Python files
@@ -44,16 +41,7 @@ format:
 ## Run tests
 .PHONY: test
 test:
-	python -m pytest tests
-
-
-## Set up Python interpreter environment
-.PHONY: create_environment
-create_environment:
-	@bash -c "if [ ! -z `which virtualenvwrapper.sh` ]; then source `which virtualenvwrapper.sh`; mkvirtualenv $(PROJECT_NAME) --python=$(PYTHON_INTERPRETER); else mkvirtualenv.bat $(PROJECT_NAME) --python=$(PYTHON_INTERPRETER); fi"
-	@echo ">>> New virtualenv created. Activate with:\nworkon $(PROJECT_NAME)"
-	
-
+	$(PYTHON_INTERPRETER) -m pytest tests
 
 
 #################################################################################
@@ -71,7 +59,7 @@ download:
 data:
 	$(PYTHON_INTERPRETER) -m mibici.dataset clean
 
-## Panel de demanda estación x hora (v2) y dataset listo para modelar (v3)
+## Panel de demanda estación-hora (v2) y dataset listo para modelar (v3)
 .PHONY: features
 features:
 	$(PYTHON_INTERPRETER) -m mibici.features
@@ -86,9 +74,9 @@ plots:
 baseline:
 	$(PYTHON_INTERPRETER) -m mibici.modeling.train
 
-## Pipeline completo de la Fase 1
+## Pipeline completo de la Fase 1 (primero corre las pruebas)
 .PHONY: pipeline
-pipeline: download data features plots baseline
+pipeline: test download data features plots baseline
 
 ## Abrir la interfaz de MLflow en http://127.0.0.1:8080
 .PHONY: mlflow-ui

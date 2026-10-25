@@ -1,4 +1,4 @@
-"""Del viaje a la demanda: panel estación x hora, variables y preprocesamiento.
+"""Del viaje a la demanda: panel estación-hora, variables y preprocesamiento.
 
 Comando:
     python -m mibici.features   # v2 (panel con variables) y v3 (listo para modelar)
@@ -126,11 +126,12 @@ def main(
 
     features = add_features(build_demand_panel(trips), stations)
     assert features["salidas"].sum() == len(trips), "el panel no conserva todos los viajes"
+    assert not features.duplicated(["estacion_id", "hora"]).any(), "estación-hora duplicada"
     panel_path = out_dir / "demand_panel.parquet"
     features.to_parquet(panel_path, index=False)
     log_dataset_version(
         features, panel_path, name="demanda", version="v2", parent="viajes-v1",
-        description="Panel estación x hora con ceros en horas activas sin viajes, "
+        description="Panel estación-hora con ceros en horas activas sin viajes, "
                     "calendario, festivos, codificación cíclica y rezagos",
         params={"rezagos_h": str(LAGS), "ventana_media_h": 24},
         metrics={"estaciones": features["estacion_id"].nunique(),

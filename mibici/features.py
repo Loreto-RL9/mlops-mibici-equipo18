@@ -68,21 +68,23 @@ def add_features(panel: pd.DataFrame, stations: pd.DataFrame) -> pd.DataFrame:
     for k in LAGS:
         df[f"lag_{k}h"] = by_station.shift(k)
     df["media_24h"] = by_station.transform(lambda s: s.shift(1).rolling(24).mean())
-    return df
+    # Las horas sin servicio son ceros seguros: se quitan después de calcular los rezagos
+    return df[~df["hora_dia"].isin(config.CLOSED_HOURS)].reset_index(drop=True)
 
 
 def station_profiles(panel: pd.DataFrame, end: str = config.TRAIN_END) -> pd.DataFrame:
-    """Perfil horario de cada estación con datos de entrenamiento: 48 valores (24 h entre
-    semana + 24 h en fin de semana). Se divide entre la media de la estación para comparar
-    la forma de la demanda y no su volumen."""
+    """Perfil horario de cada estación con datos de entrenamiento: salidas medias por hora de
+    servicio, entre semana y en fin de semana. Se divide entre la media de la estación para
+    comparar la forma de la demanda y no su volumen."""
     train = panel[panel["hora"] <= end]
     keys = [train["estacion_id"], train["hora"].dt.dayofweek >= 5, train["hora"].dt.hour]
     prof = train.groupby(keys)["salidas"].mean().unstack([1, 2])
+    prof.columns = [f"{'finde' if weekend else 'semana'}_{h:02d}" for weekend, h in prof.columns]
     return prof.div(prof.mean(axis=1), axis=0).fillna(0)
 
 
 def fit_station_pca(profiles: pd.DataFrame, variance: float = config.PCA_VARIANCE):
-    """Reduce los 48 valores del perfil a los componentes que explican `variance`."""
+    """Reduce el perfil horario a los componentes que explican `variance` de la varianza."""
     pca = PCA(n_components=variance, svd_solver="full", random_state=0).fit(profiles)
     cols = [f"pc{i + 1}" for i in range(pca.n_components_)]
     comps = pd.DataFrame(pca.transform(profiles), index=profiles.index, columns=cols)
@@ -148,7 +150,7 @@ def main(
     split_sizes = model_ready["particion"].value_counts()
     log_dataset_version(
         model_ready, ready_path, name="demanda", version="v3", parent="demanda-v2",
-        description="One-hot de municipio, PCA de perfiles semanales, StandardScaler "
+        description="One-hot de municipio, PCA de perfiles horarios, StandardScaler "
                     "ajustado solo con train y partición temporal",
         params={"pca_varianza_objetivo": config.PCA_VARIANCE, "train_hasta": config.TRAIN_END,
                 "valid_hasta": config.VALID_END, "perfil_dimensiones": profiles.shape[1]},

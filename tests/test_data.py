@@ -33,6 +33,7 @@ def raw():
         raw_trip(5, "2026-01-05 11:00:00", "2026-01-05 15:00:00"),  # más de 180 min
         raw_trip(6, "2026-01-05 12:00:00", "2026-01-05 12:20:00", destino=99),  # no existe
         raw_trip(7, "2026-01-05 13:00:00", "2026-01-05 13:10:00", genero="NULL", anio="199"),
+        raw_trip(8, "2026-01-05 03:10:00", "2026-01-05 03:25:00"),  # sistema cerrado
     ])  # fmt: skip
 
 
@@ -46,7 +47,8 @@ def test_cleaner_applies_each_rule(raw):
     clean = cleaner.clean(raw)
     assert clean["viaje_id"].tolist() == [1, 7]
     for rule in ["duplicados", "duracion_no_positiva", "arranque_fallido",
-                 "duracion_menor_1min", "duracion_mayor_180min", "estacion_fuera_de_catalogo"]:  # fmt: skip
+                 "duracion_menor_1min", "duracion_mayor_180min", "fuera_de_horario",
+                 "estacion_fuera_de_catalogo"]:  # fmt: skip
         assert cleaner.report[rule] == 1, rule
     fixed = clean.set_index("viaje_id").loc[7]
     assert fixed["genero"] == "Desconocido"
@@ -78,11 +80,13 @@ def test_panel_fills_zeros_only_inside_active_window():
 def test_lags_use_only_past_values():
     hours = pd.date_range("2026-01-05", periods=24 * 9, freq="h")
     panel = pd.DataFrame({"estacion_id": 1, "hora": hours, "salidas": np.arange(len(hours))})
-    last = add_features(panel, stations_df([1])).iloc[-1]
+    f = add_features(panel, stations_df([1]))
+    last = f.iloc[-1]
     assert last["lag_1h"] == last["salidas"] - 1
     assert last["lag_24h"] == last["salidas"] - 24
     assert last["lag_168h"] == last["salidas"] - 168
     assert last["media_24h"] == last["salidas"] - 12.5  # media de las 24 horas previas
+    assert not f["hora"].dt.hour.isin([1, 2, 3, 4]).any()  # horas sin servicio fuera del panel
 
 
 def test_scaler_uses_train_statistics_only():

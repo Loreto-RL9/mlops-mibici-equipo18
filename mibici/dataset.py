@@ -89,6 +89,8 @@ class TripCleaner:
         df = self._drop("arranque_fallido", df, same & (df[dur] < config.SAME_STATION_MAX_MIN))
         df = self._drop("duracion_menor_1min", df, df[dur] < config.MIN_DURATION_MIN)
         df = self._drop("duracion_mayor_180min", df, df[dur] > config.MAX_DURATION_MIN)
+        closed = df["inicio"].dt.hour.isin(config.CLOSED_HOURS)
+        df = self._drop("fuera_de_horario", df, closed)
         unknown = ~df["origen_id"].isin(self.station_ids) | ~df["destino_id"].isin(
             self.station_ids
         )
@@ -113,6 +115,7 @@ def check_clean_trips(df: pd.DataFrame, station_ids) -> None:
     assert df["duracion_min"].between(config.MIN_DURATION_MIN, config.MAX_DURATION_MIN).all()
     assert df["origen_id"].isin(station_ids).all(), "origen fuera del catálogo"
     assert df["destino_id"].isin(station_ids).all(), "destino fuera del catálogo"
+    assert not df["inicio"].dt.hour.isin(config.CLOSED_HOURS).any(), "salida fuera de horario"
 
 
 @app.command()
@@ -151,11 +154,12 @@ def clean(
     report_path = config.REPORTS_DIR / "reporte_limpieza.json"
     report_path.write_text(json.dumps(cleaner.report, indent=2, ensure_ascii=False))
     log_dataset_version(
-        trips, clean_path, name="viajes", version="v1", parent="v0",
+        trips, clean_path, name="viajes", version="v1", parent="viajes-v0",
         description="Tipos corregidos y reglas de limpieza aplicadas en orden",
         params={"min_duracion_min": config.MIN_DURATION_MIN,
                 "max_duracion_min": config.MAX_DURATION_MIN,
                 "arranque_fallido_min": config.SAME_STATION_MAX_MIN,
+                "horas_sin_servicio": str(config.CLOSED_HOURS),
                 "rango_anio_nacimiento": str(config.BIRTH_YEAR_RANGE)},
         metrics=cleaner.report,
         artifacts=[report_path],

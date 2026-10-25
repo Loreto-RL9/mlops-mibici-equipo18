@@ -41,6 +41,7 @@ MIN_DURATION_MIN = 1  # menos de 1 minuto: registro técnico, no un viaje
 SAME_STATION_MAX_MIN = 2  # misma estación y < 2 min: arranque fallido (bici devuelta)
 MAX_DURATION_MIN = 180  # más de 3 h: bici mal anclada o incidencia del sistema
 BIRTH_YEAR_RANGE = (1930, 2012)  # fuera de rango -> se marca como desconocido
+CLOSED_HOURS = (1, 2, 3, 4)  # el sistema no opera: solo 100 salidas en 12 meses
 
 # Partición temporal: entrenamiento oct-jun, validación jul-ago, prueba sep
 TRAIN_END = "2026-06-30 23:00"

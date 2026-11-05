@@ -74,6 +74,11 @@ plots:
 baseline:
 	$(PYTHON_INTERPRETER) -m mibici.modeling.train
 
+## Comparar algoritmos y ajustar hiperparámetros con Optuna (experimento mibici-fase2-modelos)
+.PHONY: tune
+tune:
+	$(PYTHON_INTERPRETER) -m mibici.modeling.tune
+
 ## Pipeline completo de la Fase 1 (primero corre las pruebas)
 .PHONY: pipeline
 pipeline: test download data features plots baseline

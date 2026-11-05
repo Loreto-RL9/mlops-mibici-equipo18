@@ -30,6 +30,7 @@ python -m venv .venv && source .venv/bin/activate
 make requirements      # instala dependencias y el paquete mibici en modo editable
 make pipeline          # test -> download -> data (v0, v1) -> features (v2, v3) -> plots -> baseline
 make test              # pruebas con datos sintéticos (no requieren descargar nada)
+make tune              # Fase 2: comparación de algoritmos y ajuste con Optuna (≈25 min)
 make mlflow-ui         # http://127.0.0.1:8080
 ```
 
@@ -67,6 +68,21 @@ anterior; en 24 h solo usa rezagos de 24 h o más, como un pronóstico hecho la 
 El modelo simple reduce el MAE 24.7 % en 1 h y 13.7 % en 24 h frente a la mejor persistencia de cada horizonte.
 Es el punto de partida de la Fase 2, no el modelo final.
 
+## Selección de modelos (Fase 2, experimento `mibici-fase2-modelos`)
+
+`make tune` compara tres familias para el horizonte de 24 h: regresión de Poisson, bosque aleatorio y
+HistGradientBoosting con pérdida Poisson. Optuna hace 25 pruebas por familia (cada una es un run anidado en MLflow);
+el mejor juego se reentrena con todo el entrenamiento y se evalúa en validación y una sola vez en prueba (sep 2026).
+
+| Modelo | MAE validación | MAE prueba |
+|---|---:|---:|
+| Persistencia semanal | 1.014 | 1.169 |
+| Regresión de Poisson | 1.255 | 1.399 |
+| Bosque aleatorio | 0.901 | 1.040 |
+| HistGradientBoosting Poisson, ajustado | **0.861** | **1.000** |
+
+Justificación de los algoritmos, rangos de búsqueda y conclusiones: [`reports/modelos_fase2.md`](reports/modelos_fase2.md).
+
 ## Estructura del proyecto
 
 ```
@@ -84,7 +100,8 @@ Es el punto de partida de la Fase 2, no el modelo final.
     ├── features.py      <- Panel de demanda, variables, PCA, codificación y escalado (v2, v3)
     ├── tracking.py      <- log_dataset_version(): versionado de datasets en MLflow
     ├── plots.py         <- Figuras del EDA
-    └── modeling/train.py <- Líneas base sobre v3 (experimento mibici-fase1-baseline)
+    ├── modeling/train.py <- Líneas base sobre v3 (experimento mibici-fase1-baseline)
+    └── modeling/tune.py  <- Comparación de algoritmos y ajuste con Optuna (experimento mibici-fase2-modelos)
 ```
 
 ## Equipo

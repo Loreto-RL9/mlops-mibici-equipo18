@@ -17,6 +17,7 @@ from mibici import config
 from mibici.tracking import log_dataset_version
 
 app = typer.Typer()
+DOWNLOAD_HEADERS = {"User-Agent": "curl/8.7.1", "Accept": "*/*"}
 
 TRIP_COLUMNS = [
     "viaje_id", "usuario_id", "genero", "anio_nacimiento",
@@ -127,7 +128,11 @@ def download(raw_dir: Path = config.RAW_DATA_DIR):
         target = raw_dir / url.rsplit("/", 1)[-1]
         if not target.exists():
             logger.info(f"Descargando {target.name}")
-            urllib.request.urlretrieve(url, target)
+            # El servidor responde 406 a la firma de urllib (hallazgo de reproducibilidad
+            # de la Fase 1); con encabezados como los de curl acepta la descarga.
+            request = urllib.request.Request(url, headers=DOWNLOAD_HEADERS)
+            with urllib.request.urlopen(request, timeout=180) as response:
+                target.write_bytes(response.read())
     logger.success(f"{len(urls)} archivos en {raw_dir}")
 
 

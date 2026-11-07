@@ -50,9 +50,32 @@ VALID_END = "2026-08-31 23:00"
 # PCA de los perfiles horarios de cada estación: componentes hasta explicar el 80 %
 PCA_VARIANCE = 0.80
 
+# Modelado (Fase 2) -------------------------------------------------------------
+RANDOM_STATE = 42  # semilla única para Optuna y los modelos
+# Horizonte del pronóstico: "24h" = se pronostica con un día de anticipación (solo rezagos
+# de 24 h o más); "1h" = la hora siguiente (puede usar la hora anterior).
+HORIZON = "24h"
+# Métrica que Optuna minimiza en validación: error absoluto medio en salidas por hora
+TUNING_METRIC = "mae"
+# Número de configuraciones que prueba Optuna por modelo y su espacio de búsqueda.
+# Formato: parámetro -> (tipo, mínimo, máximo); "log" muestrea en escala logarítmica.
+N_TRIALS = {"poisson_glm": 6, "hgb_poisson": 15}
+SEARCH_SPACE = {
+    "poisson_glm": {"alpha": ("log", 1e-6, 1.0)},
+    "hgb_poisson": {
+        "learning_rate": ("log", 0.03, 0.3),
+        "max_iter": ("int", 100, 400),
+        "max_leaf_nodes": ("int", 15, 127),
+        "min_samples_leaf": ("int", 20, 400),
+        "l2_regularization": ("log", 1e-4, 10.0),
+    },
+}
+
 # MLflow ----------------------------------------------------------------------
 MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", f"sqlite:///{PROJ_ROOT / 'mlflow.db'}")
 MLFLOW_EXPERIMENT = "mibici-fase1-datos"
+MODELS_EXPERIMENT = "mibici-fase2-modelos"
+REGISTERED_MODEL = "mibici-demanda-estacion-hora"
 
 # loguru compatible con barras de progreso de tqdm
 try:

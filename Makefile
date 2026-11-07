@@ -59,7 +59,7 @@ download:
 data:
 	$(PYTHON_INTERPRETER) -m mibici.dataset clean
 
-## Panel de demanda estación-hora (v2) y dataset listo para modelar (v3)
+## Panel de demanda estación-hora (v2) y entrada del modelo con partición temporal (v4)
 .PHONY: features
 features:
 	$(PYTHON_INTERPRETER) -m mibici.features
@@ -69,14 +69,19 @@ features:
 plots:
 	$(PYTHON_INTERPRETER) -m mibici.plots
 
-## Líneas base sobre v3 (experimento mibici-fase1-baseline)
-.PHONY: baseline
-baseline:
+## Ajuste con Optuna, evaluación y registro en el Model Registry (mibici-fase2-modelos)
+.PHONY: train
+train:
 	$(PYTHON_INTERPRETER) -m mibici.modeling.train
 
-## Pipeline completo de la Fase 1 (primero corre las pruebas)
+## Pronósticos de septiembre 2026 con el modelo campeón del Model Registry
+.PHONY: predict
+predict:
+	$(PYTHON_INTERPRETER) -m mibici.modeling.predict
+
+## Pipeline completo de punta a punta (primero corre las pruebas)
 .PHONY: pipeline
-pipeline: test download data features plots baseline
+pipeline: test download data features plots train predict
 
 ## Abrir la interfaz de MLflow en http://127.0.0.1:8080
 .PHONY: mlflow-ui

@@ -149,6 +149,9 @@ def main(
                 model, name="modelo", registered_model_name=config.REGISTERED_MODEL,
                 signature=infer_signature(sample, model.predict(sample)),
                 input_example=sample.head(5), code_paths=[str(config.PROJ_ROOT / "mibici")],
+                # skops no admite transformadores propios (StationProfilePCA); el código del
+                # paquete viaja con el modelo en code_paths
+                serialization_format="cloudpickle",
             )  # fmt: skip
             versions[model_name] = info.registered_model_version
             describe_version(client, versions[model_name], model_name, study.best_params,

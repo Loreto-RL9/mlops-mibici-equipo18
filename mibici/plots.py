@@ -1,12 +1,11 @@
-"""Figuras del análisis exploratorio (se guardan en reports/figures).
+"""Figuras del análisis exploratorio (reports/figures) y de evaluación de modelos.
 
 Comando:
-    python -m mibici.plots
+    python -m mibici.plots   # figuras del EDA, también registradas en MLflow
 """
 
 import json
 
-import joblib
 from loguru import logger
 import matplotlib
 import matplotlib.ticker
@@ -21,6 +20,7 @@ import typer
 
 from mibici import config
 from mibici.dataset import load_stations
+from mibici.modeling.pipeline import StationProfilePCA
 
 app = typer.Typer()
 
@@ -95,7 +95,7 @@ def plot_monthly(trips: pd.DataFrame) -> None:
 
 
 def plot_heatmap(panel: pd.DataFrame) -> None:
-    grid = panel.groupby([panel["hora"].dt.dayofweek, panel["hora"].dt.hour])["salidas"].sum()
+    grid = panel.groupby([panel["hora"].dt.day_of_week, panel["hora"].dt.hour])["salidas"].sum()
     grid = grid.unstack().reindex(columns=range(24))  # horas sin servicio quedan en blanco
     grid = grid / panel["hora"].dt.normalize().nunique() * 7  # salidas por día de la semana
     fig, ax = plt.subplots(figsize=(8, 3.2))
@@ -170,6 +170,37 @@ def plot_pca(pca, comps: pd.DataFrame, stations: pd.DataFrame, trips: pd.DataFra
     save(fig, "fig8_mapa_pc1.png")
 
 
+def plot_forecast_week(df: pd.DataFrame, pred, days: int = 7):
+    """Salidas reales y pronosticadas de la estación con más demanda en la primera semana."""
+    data = df.assign(pred=np.asarray(pred))
+    station = data.groupby("estacion_id")["salidas"].sum().idxmax()
+    data = data[data["estacion_id"] == station].sort_values("hora")
+    data = data[data["hora"] < data["hora"].min().normalize() + pd.Timedelta(days=days)]
+    fig, ax = plt.subplots(figsize=(9, 3.2))
+    ax.plot(data["hora"], data["salidas"], color=GRAY, lw=1.2, label="real")
+    ax.plot(data["hora"], data["pred"], color=RED, lw=1.6, label="pronóstico")
+    ax.set_title(f"Estación {station}: salidas por hora, real vs. pronóstico")
+    ax.set_ylabel("salidas")
+    ax.legend(frameon=False, ncols=2, loc="upper right")
+    fig.autofmt_xdate()
+    fig.tight_layout()
+    return fig
+
+
+def plot_error_by_hour(df: pd.DataFrame, predictions: dict):
+    """MAE por hora del día de cada modelo: muestra dónde está el error (horas pico)."""
+    fig, ax = plt.subplots(figsize=(8, 3.2))
+    for (name, pred), color in zip(predictions.items(), [RED, GRAY, ACCENT]):
+        error = (df["salidas"] - np.asarray(pred)).abs().groupby(df["hora_dia"]).mean()
+        ax.plot(error.index, error.values, marker="o", ms=3, color=color, label=name)
+    ax.set_title("Error absoluto medio por hora del día")
+    ax.set_xlabel("hora")
+    ax.set_ylabel("MAE (salidas)")
+    ax.legend(frameon=False)
+    fig.tight_layout()
+    return fig
+
+
 @app.command()
 def main():
     raw = pd.read_parquet(config.INTERIM_DATA_DIR / "trips_raw.parquet", columns=["inicio", "fin"])
@@ -177,8 +208,12 @@ def main():
     panel = pd.read_parquet(config.PROCESSED_DATA_DIR / "demand_panel.parquet")
     stations = load_stations()
     report = json.loads((config.REPORTS_DIR / "reporte_limpieza.json").read_text())
-    comps = pd.read_csv(config.MODELS_DIR / "pca_componentes_por_estacion.csv", index_col=0)
-    pca = joblib.load(config.MODELS_DIR / "pca_perfiles.joblib")
+    # El PCA de perfiles es el mismo transformador que usa el Pipeline, ajustado con train
+    model_input = pd.read_parquet(config.PROCESSED_DATA_DIR / "model_input.parquet")
+    train = model_input[model_input["particion"] == "train"]
+    station_pca = StationProfilePCA().fit(train, train["salidas"])
+    comps = pd.DataFrame(station_pca.codes_.to_numpy(), index=station_pca.codes_.index,
+                         columns=station_pca.get_feature_names_out())  # fmt: skip
 
     plot_cleaning(report)
     plot_duration(raw)
@@ -186,7 +221,7 @@ def main():
     plot_heatmap(panel)
     plot_demand_distribution(panel)
     plot_top_stations(trips, stations)
-    plot_pca(pca, comps, stations, trips)
+    plot_pca(station_pca.pca_, comps, stations, trips)
 
     # Las figuras también quedan versionadas en MLflow como artefactos del EDA
     mlflow.set_tracking_uri(config.MLFLOW_TRACKING_URI)

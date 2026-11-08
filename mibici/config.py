@@ -64,6 +64,7 @@ TOP_STATIONS_SHARE = 0.20  # el 20 % de las estaciones genera el 54 % de las sal
 MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", f"sqlite:///{PROJ_ROOT / 'mlflow.db'}")
 MLFLOW_EXPERIMENT = "mibici-fase1-datos"
 MLFLOW_EXPERIMENT_MODELOS = "mibici-fase2-modelos"
+REGISTERED_MODEL = "mibici-demanda-estacion-hora"  # nombre en el Model Registry
 
 # loguru compatible con barras de progreso de tqdm
 try:

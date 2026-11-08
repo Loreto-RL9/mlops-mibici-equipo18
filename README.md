@@ -28,15 +28,15 @@ justificación de cada regla de limpieza: [`references/diccionario_datos.md`](re
 ## Cómo reproducir
 
 ```bash
-python -m venv .venv && source .venv/bin/activate
-make requirements      # instala dependencias y el paquete mibici en modo editable
+uv sync --frozen && source .venv/bin/activate   # versiones exactas de uv.lock + paquete mibici editable
+# sin uv: python -m venv .venv && source .venv/bin/activate && make requirements
 make pipeline          # test -> download -> data -> features -> plots -> tune -> predict
 make mlflow-ui         # http://127.0.0.1:8080
 ```
 
 | Paso | Comando | Qué hace |
 |---|---|---|
-| Pruebas | `make test` | 17 pruebas con datos sintéticos (no descargan nada); también corren en el CI |
+| Pruebas | `make test` | 19 pruebas con datos sintéticos y un Model Registry temporal (no descargan nada); también corren en el CI |
 | Descarga | `make download` | 12 CSV mensuales (urllib y, si el portal lo rechaza, curl) |
 | Limpieza | `make data` | v0 crudo y v1 limpio, registrados en MLflow |
 | Variables | `make features` | v2 panel estación-hora y v4 entrada del modelo con partición temporal |

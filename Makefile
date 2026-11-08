@@ -10,11 +10,15 @@ PYTHON_INTERPRETER = python
 #################################################################################
 
 
-## Install Python dependencies
+## Install Python dependencies (versiones fijadas en uv.lock; sin uv, con pip y requirements.txt)
 .PHONY: requirements
 requirements:
+ifneq ($(shell command -v uv 2>/dev/null),)
+	uv sync --frozen
+else
 	$(PYTHON_INTERPRETER) -m pip install -U pip
 	$(PYTHON_INTERPRETER) -m pip install -r requirements.txt
+endif
 
 
 ## Delete all compiled Python files

@@ -28,8 +28,8 @@ justificación de cada regla de limpieza: [`references/diccionario_datos.md`](re
 ## Cómo reproducir
 
 ```bash
-uv sync --frozen && source .venv/bin/activate   # versiones exactas de uv.lock + paquete mibici editable
-# sin uv: python -m venv .venv && source .venv/bin/activate && make requirements
+make requirements      # con uv: uv sync --frozen (Python 3.12 y versiones exactas de uv.lock)
+# sin uv: python -m venv .venv, activarlo (Windows: .venv\Scripts\activate) y luego make requirements
 make pipeline          # test -> download -> data -> features -> plots -> tune -> predict
 make mlflow-ui         # http://127.0.0.1:8080
 ```
@@ -132,7 +132,7 @@ model.predict(df[model.feature_names_in_])   # df con las columnas de v4
 ├── notebooks/           <- Solo exploración; importan el paquete mibici
 ├── references/          <- ML Canvas, diccionario de datos y verificación de reproducibilidad
 ├── reports/             <- Hallazgos del EDA, selección de modelos, tabla comparativa y figuras
-├── tests/               <- test_data.py, test_pipeline.py, test_tune.py (datos sintéticos)
+├── tests/               <- test_data, test_pipeline, test_tune y test_registry (datos sintéticos, conftest.py)
 └── mibici/              <- Código fuente
     ├── config.py        <- Rutas, fuente, umbrales de limpieza, partición, semilla, horizonte, MLflow
     ├── dataset.py       <- Descarga, lectura, TripCleaner y validación (v0, v1)

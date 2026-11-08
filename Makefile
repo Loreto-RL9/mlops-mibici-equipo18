@@ -3,7 +3,15 @@
 #################################################################################
 
 PROJECT_NAME = mlops-mibici-equipo18
+# Con uv, cada comando corre en el entorno de uv.lock (sin activar .venv); sin uv, con el python
+# del entorno activo
+ifneq ($(shell command -v uv 2>/dev/null),)
+RUN = uv run --frozen
+PYTHON_INTERPRETER = $(RUN) python
+else
+RUN =
 PYTHON_INTERPRETER = python
+endif
 
 #################################################################################
 # COMMANDS                                                                      #
@@ -13,7 +21,7 @@ PYTHON_INTERPRETER = python
 ## Install Python dependencies (versiones fijadas en uv.lock; sin uv, con pip y requirements.txt)
 .PHONY: requirements
 requirements:
-ifneq ($(shell command -v uv 2>/dev/null),)
+ifneq ($(RUN),)
 	uv sync --frozen
 else
 	$(PYTHON_INTERPRETER) -m pip install -U pip
@@ -31,14 +39,14 @@ clean:
 ## Lint using ruff (use `make format` to do formatting)
 .PHONY: lint
 lint:
-	ruff format --check
-	ruff check
+	$(RUN) ruff format --check
+	$(RUN) ruff check
 
 ## Format source code with ruff
 .PHONY: format
 format:
-	ruff check --fix
-	ruff format
+	$(RUN) ruff check --fix
+	$(RUN) ruff format
 
 
 
@@ -90,7 +98,7 @@ pipeline: test download data features plots tune predict
 ## Abrir la interfaz de MLflow en http://127.0.0.1:8080
 .PHONY: mlflow-ui
 mlflow-ui:
-	mlflow ui --backend-store-uri sqlite:///mlflow.db --port 8080
+	$(RUN) mlflow ui --backend-store-uri sqlite:///mlflow.db --port 8080
 
 
 #################################################################################

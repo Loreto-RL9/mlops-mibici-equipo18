@@ -1,5 +1,6 @@
-# Integración continua: en cada push y pull request se revisa el estilo con ruff
-# y se corren las pruebas de tests/ (usan datos sintéticos, no descargan nada).
+# Integración continua: en cada push y pull request se instalan las dependencias fijadas en
+# uv.lock, se revisa el estilo con ruff y se corren las pruebas de tests/ (datos sintéticos y una
+# base de MLflow temporal: no descargan nada).
 name: CI
 
 on:
@@ -13,17 +14,16 @@ jobs:
       - name: Obtener el código
         uses: actions/checkout@v4
 
-      - name: Configurar Python
-        uses: actions/setup-python@v5
+      - name: Instalar uv
+        uses: astral-sh/setup-uv@v6
         with:
-          python-version: "3.12"
-          cache: pip
+          enable-cache: true
 
-      - name: Instalar dependencias
-        run: make requirements
+      - name: Instalar dependencias desde uv.lock
+        run: uv sync --frozen --python 3.12
 
       - name: Revisar estilo con ruff
-        run: ruff check
+        run: uv run --frozen ruff check
 
-      - name: Correr pruebas con pytest
-        run: make test
+      - name: Correr pruebas con pytest (Pipeline, Optuna y Model Registry)
+        run: uv run --frozen pytest tests

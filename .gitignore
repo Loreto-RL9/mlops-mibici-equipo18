@@ -1,5 +1,8 @@
-# Data
-/data/
+# Data (solo se versiona el catálogo de estaciones, que el portal ya no publica)
+/data/*
+!/data/external/
+/data/external/*
+!/data/external/nomenclatura_2026_09.csv
 
 # MLflow (base de datos local y artefactos) y modelos generados
 mlflow.db

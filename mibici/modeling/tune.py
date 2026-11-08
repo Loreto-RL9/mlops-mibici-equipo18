@@ -22,7 +22,11 @@ con menor devianza de Poisson en validación recibe el alias "champion".
 
 Comando:
     python -m mibici.modeling.tune                                   # 3 familias, horizonte 24 h
+    python -m mibici.modeling.tune --modelos random_forest           # una familia (otra sesión)
     python -m mibici.modeling.tune --modelos hgb_poisson --trials 40 --horizonte 1h
+
+La tabla reports/comparacion_modelos_{h}.csv se arma con la última corrida de cada modelo en MLflow,
+así que las familias pueden correrse por separado sin perder la comparación.
 """
 
 import time
@@ -110,6 +114,43 @@ def log_study_figures(study: optuna.Study):
         matplotlib.pyplot.close(ax.figure)
 
 
+def latest_runs(horizon: str) -> pd.DataFrame:
+    """Última corrida de cada modelo para el horizonte (runs padre, sin las pruebas anidadas)."""
+    runs = mlflow.search_runs(
+        experiment_names=[config.MLFLOW_EXPERIMENT_MODELOS],
+        filter_string=f"attributes.run_name LIKE '%-{horizon}' AND attributes.status = 'FINISHED'",
+        order_by=["attributes.start_time DESC"],
+    )  # fmt: skip
+    if runs.empty:
+        return pd.DataFrame(columns=["modelo"])
+    runs["modelo"] = runs["params.modelo"]
+    return runs.drop_duplicates("modelo")
+
+
+def comparison_table(horizon: str) -> pd.DataFrame:
+    """Tabla de métricas leída de MLflow: sirve aunque las familias se corran por separado
+    (por ejemplo, `--modelos random_forest` en otra sesión)."""
+    rows = []
+    for _, run in latest_runs(horizon).iterrows():
+        for p in PARTITIONS:
+            metrics = {col.removeprefix("metrics.").removesuffix(f"_{p}"): run[col]
+                       for col in run.index
+                       if col.startswith("metrics.") and col.endswith(f"_{p}")}  # fmt: skip
+            rows.append({"modelo": run["modelo"], "particion": p, **metrics})
+    order = {name: i for i, name in enumerate(["persistencia_semanal", *MODELS, *PARTITIONS])}
+    table = pd.DataFrame(rows).sort_values(["modelo", "particion"], key=lambda c: c.map(order))
+    cols = [
+        "modelo",
+        "particion",
+        "mae",
+        "rmse",
+        "devianza_poisson",
+        "sesgo",
+        "mae_top_estaciones",
+    ]
+    return table[cols].round(4).reset_index(drop=True)
+
+
 @app.command()
 def main(
     modelos: Annotated[list[str], typer.Option(help="Familias a comparar")] = ALL_MODELS,
@@ -128,14 +169,13 @@ def main(
 
     mlflow.set_tracking_uri(config.MLFLOW_TRACKING_URI)
     mlflow.set_experiment(config.MLFLOW_EXPERIMENT_MODELOS)
-    rows = []
-    with mlflow.start_run(run_name=f"persistencia_semanal-{horizonte}"):  # referencia en la UI
-        mlflow.log_params({"modelo": "persistencia_semanal", "horizonte": horizonte,
-                           "dataset": "demanda-v4"})  # fmt: skip
-        for p in PARTITIONS:  # la persistencia semanal es el rezago de 168 h sin transformar
-            m = evaluate(parts[p]["salidas"], parts[p]["lag_168h"], masks[p])
-            mlflow.log_metrics({f"{k}_{p}": v for k, v in m.items()})
-            rows.append({"modelo": "persistencia_semanal", "particion": p, **m})
+    if latest_runs(horizonte).query("modelo == 'persistencia_semanal'").empty:
+        with mlflow.start_run(run_name=f"persistencia_semanal-{horizonte}"):  # referencia
+            mlflow.log_params({"modelo": "persistencia_semanal", "horizonte": horizonte,
+                               "dataset": "demanda-v4"})  # fmt: skip
+            for p in PARTITIONS:  # la persistencia semanal es el rezago de 168 h sin transformar
+                m = evaluate(parts[p]["salidas"], parts[p]["lag_168h"], masks[p])
+                mlflow.log_metrics({f"{k}_{p}": v for k, v in m.items()})
 
     for name in modelos:
         with mlflow.start_run(run_name=f"{name}-{horizonte}"):
@@ -157,12 +197,8 @@ def main(
             version = log_and_register(model, name, study.best_params, metrics, predictions,
                                        parts, horizonte)  # fmt: skip
             logger.info(f"{name}: MAE validación {metrics['mae_valid']:.3f}, versión {version}")
-            for p in PARTITIONS:
-                rows.append({"modelo": name, "particion": p,
-                             **{k.removesuffix(f"_{p}"): v for k, v in metrics.items()
-                                if k.endswith(f"_{p}")}})  # fmt: skip
 
-    table = pd.DataFrame(rows).round(4)
+    table = comparison_table(horizonte)
     out = config.REPORTS_DIR / f"comparacion_modelos_{horizonte}.csv"
     table.to_csv(out, index=False)
     logger.success(f"Campeón: {set_champion(horizonte)}")

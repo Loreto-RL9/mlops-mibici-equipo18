@@ -14,26 +14,6 @@ from mibici.modeling.pipeline import (
 from mibici.modeling.train import MODELS, evaluate, fit_and_evaluate
 
 
-@pytest.fixture
-def data():
-    """Tres estaciones con patrones distintos durante dos semanas de horas de servicio."""
-    rng = np.random.default_rng(0)
-    hours = pd.date_range("2026-03-02", periods=24 * 14, freq="h")
-    hours = hours[~hours.hour.isin([1, 2, 3, 4])]
-    rows = []
-    for sid, peak, municipio in [(1, 8, "GDL"), (2, 18, "ZPN"), (3, 13, "TLQ")]:
-        lam = 1 + 4 * np.exp(-((hours.hour - peak) ** 2) / 8)
-        rows.append(pd.DataFrame({
-            "estacion_id": sid, "hora": hours, "salidas": rng.poisson(lam),
-            "hora_dia": hours.hour, "dia_semana": hours.day_of_week,
-            "fin_de_semana": (hours.day_of_week >= 5).astype(int), "festivo": 0,
-            "capacidad": 10 + sid, "lat": 20.6 + sid / 100, "lon": -103.3 - sid / 100,
-            "municipio": municipio, "lag_1h": rng.poisson(lam), "lag_24h": rng.poisson(lam),
-            "lag_168h": rng.poisson(lam), "media_24h": lam.to_numpy(),
-        }))  # fmt: skip
-    return pd.concat(rows, ignore_index=True)
-
-
 def test_cyclic_encoding_puts_23h_next_to_0h():
     encoded = cyclic_encode(pd.DataFrame({"hora_dia": [0, 23, 12], "dia_semana": [0, 6, 3]}))
     hour_0, hour_23, hour_12 = encoded[:, :2]
@@ -71,14 +51,8 @@ def test_pipelines_learn_better_than_the_mean(data, model_name, params):
     assert evaluate(y, pred)["mae"] < evaluate(y, np.full(len(y), y.mean()))["mae"]
 
 
-def test_fit_and_evaluate_trains_on_the_past_and_scores_valid_and_test(data):
+def test_fit_and_evaluate_trains_on_the_past_and_scores_valid_and_test(parts):
     """De punta a punta: el Pipeline se ajusta con entrenamiento y se evalúa en las otras dos."""
-    day = data["hora"].dt.normalize()
-    parts = {
-        "train": data[day < "2026-03-12"],
-        "valid": data[day.between("2026-03-12", "2026-03-13")],
-        "test": data[day >= "2026-03-14"],
-    }
     model, metrics, predictions = fit_and_evaluate("hgb_poisson", {"max_iter": 30}, parts, "24h")
     assert list(model.named_steps) == ["preprocesamiento", "modelo"]
     assert {"mae_valid", "mae_test", "devianza_poisson_valid", "mae_top_estaciones_test"} <= set(

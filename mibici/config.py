@@ -53,6 +53,9 @@ PCA_VARIANCE = 0.80
 
 # Selección de modelos y ajuste de hiperparámetros (Fase 2) -------------------
 SEED = 42
+# Horizonte del pronóstico: "24h" = la noche anterior (solo rezagos de 24 h o más); "1h" = la hora
+# siguiente (puede usar la demanda de la hora anterior).
+HORIZON = "24h"
 OPTUNA_TRIALS = 25  # pruebas por familia de modelos
 OPTUNA_SAMPLE_ROWS = 400_000  # muestra de entrenamiento para que cada prueba tarde segundos
 TOP_STATIONS_SHARE = 0.20  # el 20 % de las estaciones genera el 54 % de las salidas

@@ -1,86 +1,174 @@
-"""Línea base: comprueba que el dataset v3 ya sirve para modelar (punto de partida de la Fase 2).
+"""Entrenamiento final, evaluación y registro de un modelo (Fase 2).
 
-Se evalúan dos horizontes en la partición de validación (jul-ago 2026):
-  * 1 h: pronóstico para la hora siguiente; puede usar la demanda de la hora anterior.
-  * 24 h: pronóstico hecho un día antes; solo usa rezagos de 24 h o más.
-En cada horizonte se compara una persistencia ingenua con HistGradientBoostingRegressor
-con pérdida Poisson (la demanda es un conteo). Cada modelo es un run del experimento
-`mibici-fase1-baseline`.
+Un modelo es un Pipeline de scikit-learn (mibici/modeling/pipeline.py): el preprocesamiento y el
+estimador se ajustan juntos, solo con entrenamiento (oct 2025 a jun 2026), y se guardan juntos en
+el MLflow Model Registry. La inferencia (predict.py) aplica así exactamente las mismas
+transformaciones que el entrenamiento.
+
+Este módulo reúne lo que comparten la búsqueda de hiperparámetros (tune.py) y la inferencia: las
+familias de algoritmos, las métricas, la carga de particiones, el reentrenamiento con todo el
+entrenamiento y el registro de la versión con sus hiperparámetros, métricas y gráficas.
 
 Comando:
-    python -m mibici.modeling.train
+    python -m mibici.modeling.train --modelo hgb_poisson   # mejores hiperparámetros de make tune
 """
 
+import ast
+
 from loguru import logger
+import matplotlib.pyplot as plt
 import mlflow
+from mlflow.models import infer_signature
+from mlflow.tracking import MlflowClient
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import HistGradientBoostingRegressor
-from sklearn.metrics import mean_absolute_error, root_mean_squared_error
+from sklearn.ensemble import HistGradientBoostingRegressor, RandomForestRegressor
+from sklearn.linear_model import PoissonRegressor
+from sklearn.metrics import mean_absolute_error, mean_poisson_deviance, root_mean_squared_error
 import typer
 
 from mibici import config
+from mibici.modeling.pipeline import build_pipeline, input_columns
+from mibici.plots import plot_error_by_hour, plot_forecast_week
 
 app = typer.Typer()
-ID_COLS = ["estacion_id", "hora", "particion", "salidas"]
-# Variables que no se conocen al pronosticar con 24 h de anticipación
-NOT_AVAILABLE_24H = ["lag_1h", "media_24h"]
+
+# Familias de algoritmos (justificación en tune.py y reports/modelos_fase2.md). Cada una recibe
+# sus hiperparámetros y devuelve el estimador que va al final del Pipeline.
+MODELS = {
+    "poisson_glm": lambda p: PoissonRegressor(max_iter=1000, **p),
+    "random_forest": lambda p: RandomForestRegressor(
+        max_samples=0.2, n_jobs=-1, random_state=config.SEED, **p
+    ),
+    "hgb_poisson": lambda p: HistGradientBoostingRegressor(
+        loss="poisson", early_stopping=False, random_state=config.SEED, **p
+    ),
+}
+PARTITIONS = ("valid", "test")
 
 
-def evaluate(y_true, y_pred) -> dict:
-    return {"mae": mean_absolute_error(y_true, y_pred),
-            "rmse": root_mean_squared_error(y_true, y_pred)}  # fmt: skip
+def evaluate(y_true, y_pred, top_mask=None) -> dict:
+    """MAE y RMSE en bicis por hora, devianza de Poisson, sesgo (si es negativo, el modelo
+    subestima) y MAE en las estaciones de mayor demanda, que son las que importan al rebalancear."""
+    y_true, y_pred = np.asarray(y_true), np.clip(y_pred, 1e-6, None)  # la devianza exige > 0
+    metrics = {
+        "mae": mean_absolute_error(y_true, y_pred),
+        "rmse": root_mean_squared_error(y_true, y_pred),
+        "devianza_poisson": mean_poisson_deviance(y_true, y_pred),
+        "sesgo": float(np.mean(y_pred - y_true)),
+    }
+    if top_mask is not None:
+        top_mask = np.asarray(top_mask)
+        metrics["mae_top_estaciones"] = mean_absolute_error(y_true[top_mask], y_pred[top_mask])
+    return metrics
+
+
+def top_stations(train: pd.DataFrame, share: float = config.TOP_STATIONS_SHARE) -> set:
+    """Estaciones con más salidas en entrenamiento (el 20 % concentra el 54 % de la demanda)."""
+    totals = train.groupby("estacion_id")["salidas"].sum().sort_values(ascending=False)
+    return set(totals.index[: max(1, round(share * len(totals)))])
+
+
+def load_partitions() -> dict:
+    """Particiones de v4, sin transformar: el preprocesamiento vive en el Pipeline."""
+    data = pd.read_parquet(config.PROCESSED_DATA_DIR / "model_input.parquet")
+    return {p: data[data["particion"] == p].reset_index(drop=True) for p in ("train", *PARTITIONS)}
+
+
+def fit_and_evaluate(name: str, params: dict, parts: dict, horizon: str = config.HORIZON):
+    """Ajusta el Pipeline con todo el entrenamiento y lo evalúa en validación y en prueba (la
+    prueba se mira una sola vez, con el modelo ya elegido)."""
+    features = input_columns(horizon)
+    model = build_pipeline(MODELS[name](params), horizon)
+    model.fit(parts["train"][features], parts["train"]["salidas"])
+    top = top_stations(parts["train"])
+    metrics, predictions = {}, {}
+    for p in PARTITIONS:
+        predictions[p] = model.predict(parts[p][features])
+        m = evaluate(parts[p]["salidas"], predictions[p], parts[p]["estacion_id"].isin(top))
+        metrics.update({f"{k}_{p}": v for k, v in m.items()})
+    return model, metrics, predictions
+
+
+def log_and_register(model, name, params, metrics, predictions, parts, horizon) -> str:
+    """En el run activo: métricas, gráficas del pronóstico y el Pipeline en el Model Registry,
+    con los hiperparámetros y las métricas como etiquetas de la versión."""
+    mlflow.log_metrics(metrics)
+    test = parts["test"]
+    figures = {
+        "pronostico_semana.png": plot_forecast_week(test, predictions["test"]),
+        "mae_por_hora.png": plot_error_by_hour(
+            test, {name: predictions["test"], "persistencia semanal": test["lag_168h"]}
+        ),
+    }
+    for file, fig in figures.items():
+        mlflow.log_figure(fig, file)
+        plt.close(fig)
+
+    sample = parts["valid"][list(model.feature_names_in_)].head(1000)
+    info = mlflow.sklearn.log_model(
+        model, name="model", registered_model_name=config.REGISTERED_MODEL,
+        signature=infer_signature(sample, model.predict(sample)), input_example=sample.head(5),
+        # skops no admite transformadores propios (StationProfilePCA): se usa cloudpickle y el
+        # código del paquete viaja con el modelo
+        serialization_format="cloudpickle", code_paths=[str(config.PROJ_ROOT / "mibici")],
+    )  # fmt: skip
+
+    client, version = MlflowClient(), info.registered_model_version
+    client.update_model_version(
+        config.REGISTERED_MODEL, version,
+        description=f"{name}, horizonte {horizon}: Pipeline (preprocesamiento + modelo) entrenado "
+                    f"con demanda-v4, oct 2025 a jun 2026. MAE validación "
+                    f"{metrics['mae_valid']:.3f}, prueba {metrics['mae_test']:.3f} salidas por "
+                    f"estación-hora.",
+    )  # fmt: skip
+    tags = {"modelo": name, "horizonte": horizon, "dataset": "demanda-v4",
+            **{f"param_{k}": v for k, v in params.items()},
+            **{k: round(v, 4) for k, v in metrics.items()}}  # fmt: skip
+    for key, value in tags.items():
+        client.set_model_version_tag(config.REGISTERED_MODEL, version, key, str(value))
+    return version
+
+
+def set_champion(horizon: str = config.HORIZON) -> str:
+    """Alias "champion" para la versión con menor devianza de Poisson en validación (la métrica
+    que optimiza Optuna) entre todas las registradas para el horizonte."""
+    client = MlflowClient()
+    versions = [v for v in client.search_model_versions(f"name='{config.REGISTERED_MODEL}'")
+                if v.tags.get("horizonte") == horizon]  # fmt: skip
+    best = min(versions, key=lambda v: float(v.tags["devianza_poisson_valid"]))
+    client.set_registered_model_alias(config.REGISTERED_MODEL, "champion", best.version)
+    return f"{best.tags['modelo']} (versión {best.version})"
+
+
+def best_params(name: str, horizon: str = config.HORIZON) -> dict:
+    """Mejores hiperparámetros de la última búsqueda de Optuna de la familia (run "{name}-{h}")."""
+    runs = mlflow.search_runs(
+        experiment_names=[config.MLFLOW_EXPERIMENT_MODELOS],
+        filter_string=f"attributes.run_name = '{name}-{horizon}'",
+        order_by=["attributes.start_time DESC"], max_results=1,
+    )  # fmt: skip
+    assert len(runs), f"no hay búsqueda de Optuna para {name}-{horizon}: corre make tune"
+    row = runs.iloc[0]
+    return {col.removeprefix("params.mejor_"): ast.literal_eval(value)
+            for col, value in row.items()
+            if col.startswith("params.mejor_") and isinstance(value, str)}  # fmt: skip
 
 
 @app.command()
-def main(max_iter: int = 200, learning_rate: float = 0.1):
-    ready = pd.read_parquet(config.PROCESSED_DATA_DIR / "model_ready.parquet")
-    raw_lags = pd.read_parquet(
-        config.PROCESSED_DATA_DIR / "demand_panel.parquet",
-        columns=["estacion_id", "hora", "lag_1h", "lag_24h", "lag_168h"],
-    )
-    valid = ready[ready["particion"] == "valid"].merge(raw_lags, on=["estacion_id", "hora"],
-                                                       suffixes=("", "_orig"))  # fmt: skip
-    train = ready[ready["particion"] == "train"]
-    all_features = [c for c in ready.columns if c not in ID_COLS]
-
+def main(modelo: str = "hgb_poisson", horizonte: str = config.HORIZON):
+    """Reentrena una familia con sus mejores hiperparámetros y registra una versión nueva."""
     mlflow.set_tracking_uri(config.MLFLOW_TRACKING_URI)
-    mlflow.set_experiment("mibici-fase1-baseline")
-    results = {}
-    naive = {"persistencia_1h": ("1h", "lag_1h_orig"), "persistencia_24h": ("24h", "lag_24h_orig"),
-             "persistencia_semanal": ("24h", "lag_168h_orig")}  # fmt: skip
-    for name, (horizon, col) in naive.items():
-        with mlflow.start_run(run_name=name):
-            results[name] = evaluate(valid["salidas"], valid[col])
-            mlflow.log_params({"modelo": name, "horizonte": horizon, "dataset": "demanda-v3"})
-            mlflow.log_metrics(results[name])
-
-    for horizon, excluded in [("1h", []), ("24h", NOT_AVAILABLE_24H)]:
-        features = [c for c in all_features if c not in excluded]
-        name = f"hgb_poisson_{horizon}"
-        with mlflow.start_run(run_name=name):
-            model = HistGradientBoostingRegressor(
-                loss="poisson", max_iter=max_iter, learning_rate=learning_rate, random_state=42
-            )
-            model.fit(train[features], train["salidas"])
-            results[name] = evaluate(valid["salidas"], model.predict(valid[features]))
-            mlflow.log_params({"modelo": "HistGradientBoostingRegressor", "loss": "poisson",
-                               "horizonte": horizon, "max_iter": max_iter,
-                               "learning_rate": learning_rate, "dataset": "demanda-v3",
-                               "n_features": len(features)})  # fmt: skip
-            mlflow.log_metrics(results[name])
-            mlflow.log_text("\n".join(features), "features.txt")
-
-    for name, m in results.items():
-        logger.info(f"{name:>22}: MAE={m['mae']:.3f} RMSE={m['rmse']:.3f}")
-    for horizon in ("1h", "24h"):  # se compara contra la mejor persistencia del mismo horizonte
-        reference = min((n for n, (h, _) in naive.items() if h == horizon),
-                        key=lambda n: results[n]["mae"])  # fmt: skip
-        gain = 1 - results[f"hgb_poisson_{horizon}"]["mae"] / results[reference]["mae"]
-        logger.info(
-            f"Horizonte {horizon}: HGB mejora el MAE {100 * gain:.1f} % frente a {reference}"
-        )
-    assert all(np.isfinite(m["mae"]) for m in results.values()), "hay métricas no válidas"
+    mlflow.set_experiment(config.MLFLOW_EXPERIMENT_MODELOS)
+    params = best_params(modelo, horizonte)
+    parts = load_partitions()
+    with mlflow.start_run(run_name=f"{modelo}-{horizonte}-reentrenamiento"):
+        mlflow.log_params({"modelo": modelo, "horizonte": horizonte, "dataset": "demanda-v4",
+                           "semilla": config.SEED, **params})  # fmt: skip
+        model, metrics, predictions = fit_and_evaluate(modelo, params, parts, horizonte)
+        version = log_and_register(model, modelo, params, metrics, predictions, parts, horizonte)
+    logger.info(f"MAE validación {metrics['mae_valid']:.3f}, prueba {metrics['mae_test']:.3f}")
+    logger.success(f"{modelo}: versión {version}. Campeón: {set_champion(horizonte)}")
 
 
 if __name__ == "__main__":

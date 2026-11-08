@@ -1,12 +1,15 @@
 """Ingesta y limpieza de los viajes de MiBici.
 
 Comandos:
-    python -m mibici.dataset download   # descarga los 12 CSV mensuales y el catálogo
+    python -m mibici.dataset download   # descarga los 12 CSV mensuales de viajes
     python -m mibici.dataset clean      # v0 (crudo) y v1 (limpio), registrados en MLflow
 """
 
 import json
 from pathlib import Path
+import shutil
+import subprocess
+import urllib.error
 import urllib.request
 
 from loguru import logger
@@ -17,6 +20,7 @@ from mibici import config
 from mibici.tracking import log_dataset_version
 
 app = typer.Typer()
+DOWNLOAD_HEADERS = {"User-Agent": "curl/8.7.1", "Accept": "*/*"}
 
 TRIP_COLUMNS = [
     "viaje_id", "usuario_id", "genero", "anio_nacimiento",
@@ -118,16 +122,39 @@ def check_clean_trips(df: pd.DataFrame, station_ids) -> None:
     assert not df["inicio"].dt.hour.isin(config.CLOSED_HOURS).any(), "salida fuera de horario"
 
 
+def download_file(url: str, target: Path) -> None:
+    """El portal respondió 406 a urllib y 200 a curl (hallazgo de reproducibilidad de la Fase 1,
+    references/reproducibilidad.md). Se intenta con urllib y encabezados de curl; si el servidor
+    lo rechaza, se usa curl, que viene instalado en Windows 10+, macOS y Linux."""
+    try:
+        request = urllib.request.Request(url, headers=DOWNLOAD_HEADERS)
+        with urllib.request.urlopen(request, timeout=180) as response:
+            target.write_bytes(response.read())
+    except urllib.error.HTTPError as error:
+        curl = shutil.which("curl")
+        if curl is None:
+            raise
+        logger.warning(f"urllib recibió HTTP {error.code}; se reintenta con curl")
+        try:
+            subprocess.run([curl, "--fail", "--location", "--silent", "--show-error", "--retry",
+                            "2", "--max-time", "180", "--output", str(target), url],
+                           check=True)  # fmt: skip
+        except subprocess.CalledProcessError:
+            target.unlink(missing_ok=True)  # sin archivos a medias que el siguiente intento omita
+            raise
+
+
 @app.command()
 def download(raw_dir: Path = config.RAW_DATA_DIR):
-    """Descarga los CSV mensuales y el catálogo de estaciones (omite los que ya existen)."""
+    """Descarga los 12 CSV mensuales de viajes (omite los que ya existen)."""
+    # El catálogo de estaciones no se descarga: vive versionado en data/external
     urls = [f"{config.BASE_URL}/{folder}/datos_abiertos_{month}.csv"
-            for month, folder in config.TRIP_FILES.items()] + [config.STATIONS_URL]  # fmt: skip
+            for month, folder in config.TRIP_FILES.items()]  # fmt: skip
     for url in urls:
         target = raw_dir / url.rsplit("/", 1)[-1]
         if not target.exists():
             logger.info(f"Descargando {target.name}")
-            urllib.request.urlretrieve(url, target)
+            download_file(url, target)
     logger.success(f"{len(urls)} archivos en {raw_dir}")
 
 

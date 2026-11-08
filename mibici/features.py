@@ -1,18 +1,18 @@
-"""Del viaje a la demanda: panel estación-hora, variables y preprocesamiento.
+"""Del viaje a la demanda: panel estación-hora con sus variables.
+
+El escalado, la codificación y el PCA ya no se aplican aquí: viven en el Pipeline de
+scikit-learn (mibici/modeling/pipeline.py), que los ajusta solo con entrenamiento.
 
 Comando:
-    python -m mibici.features   # v2 (panel con variables) y v3 (listo para modelar)
+    python -m mibici.features   # v2 (panel con variables) y v4 (v2 con partición temporal)
 """
 
 from pathlib import Path
 
 import holidays
-import joblib
 from loguru import logger
 import numpy as np
 import pandas as pd
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
 import typer
 
 from mibici import config
@@ -22,8 +22,6 @@ from mibici.tracking import log_dataset_version
 app = typer.Typer()
 
 LAGS = [1, 24, 168]  # hora anterior, mismo momento ayer, mismo momento la semana pasada
-BASE_SCALED = ["capacidad", "lat", "lon", "hora_sin", "hora_cos", "dia_sin", "dia_cos",
-               *[f"lag_{k}h" for k in LAGS], "media_24h"]  # fmt: skip
 
 
 def build_demand_panel(trips: pd.DataFrame) -> pd.DataFrame:
@@ -42,26 +40,18 @@ def build_demand_panel(trips: pd.DataFrame) -> pd.DataFrame:
     return panel.loc[active, ["estacion_id", "hora", "salidas"]].reset_index(drop=True)
 
 
-def cyclic(values: pd.Series, period: int):
-    angle = 2 * np.pi * values / period
-    return np.sin(angle), np.cos(angle)
-
-
 def add_features(panel: pd.DataFrame, stations: pd.DataFrame) -> pd.DataFrame:
-    """Calendario, codificación cíclica, datos de la estación y rezagos de la demanda."""
+    """Calendario, festivos, datos de la estación y rezagos de la demanda."""
     cols = ["estacion_id", "capacidad", "lat", "lon", "municipio"]
     df = panel.merge(stations[cols], on="estacion_id", how="left")
     df = df.sort_values(["estacion_id", "hora"]).reset_index(drop=True)
 
     h = df["hora"]
     df["hora_dia"] = h.dt.hour
-    df["dia_semana"] = h.dt.dayofweek
+    df["dia_semana"] = h.dt.day_of_week
     df["fin_de_semana"] = (df["dia_semana"] >= 5).astype(int)
     mx_holidays = pd.to_datetime(list(holidays.Mexico(years=h.dt.year.unique().tolist())))
     df["festivo"] = h.dt.normalize().isin(mx_holidays).astype(int)
-    # Codificación cíclica: las 23 h quedan junto a las 0 h y el domingo junto al lunes
-    df["hora_sin"], df["hora_cos"] = cyclic(h.dt.hour, 24)
-    df["dia_sin"], df["dia_cos"] = cyclic(h.dt.dayofweek, 7)
 
     # Rezagos por estación (el panel es continuo hora a hora dentro de cada estación)
     by_station = df.groupby("estacion_id")["salidas"]
@@ -72,25 +62,6 @@ def add_features(panel: pd.DataFrame, stations: pd.DataFrame) -> pd.DataFrame:
     return df[~df["hora_dia"].isin(config.CLOSED_HOURS)].reset_index(drop=True)
 
 
-def station_profiles(panel: pd.DataFrame, end: str = config.TRAIN_END) -> pd.DataFrame:
-    """Perfil horario de cada estación con datos de entrenamiento: salidas medias por hora de
-    servicio, entre semana y en fin de semana. Se divide entre la media de la estación para
-    comparar la forma de la demanda y no su volumen."""
-    train = panel[panel["hora"] <= end]
-    keys = [train["estacion_id"], train["hora"].dt.dayofweek >= 5, train["hora"].dt.hour]
-    prof = train.groupby(keys)["salidas"].mean().unstack([1, 2])
-    prof.columns = [f"{'finde' if weekend else 'semana'}_{h:02d}" for weekend, h in prof.columns]
-    return prof.div(prof.mean(axis=1), axis=0).fillna(0)
-
-
-def fit_station_pca(profiles: pd.DataFrame, variance: float = config.PCA_VARIANCE):
-    """Reduce el perfil horario a los componentes que explican `variance` de la varianza."""
-    pca = PCA(n_components=variance, svd_solver="full", random_state=0).fit(profiles)
-    cols = [f"pc{i + 1}" for i in range(pca.n_components_)]
-    comps = pd.DataFrame(pca.transform(profiles), index=profiles.index, columns=cols)
-    return pca, comps
-
-
 def assign_split(hora: pd.Series) -> pd.Series:
     """Partición temporal: el pasado entrena y el futuro evalúa (sin fuga de información)."""
     labels = np.select(
@@ -99,21 +70,12 @@ def assign_split(hora: pd.Series) -> pd.Series:
     return pd.Series(labels, index=hora.index)
 
 
-def make_model_ready(features: pd.DataFrame, comps: pd.DataFrame):
-    """Une los componentes PCA, codifica el municipio y escala con estadísticas de train."""
-    pc_cols = list(comps.columns)
-    scaled_cols = BASE_SCALED + pc_cols
-    df = features.join(comps, on="estacion_id")
-    df[pc_cols] = df[pc_cols].fillna(0)  # estación sin historia en train = perfil promedio
-    df = df.dropna(subset=[f"lag_{k}h" for k in LAGS] + ["media_24h"])
+def make_model_input(features: pd.DataFrame) -> pd.DataFrame:
+    """v4: filas con todos sus rezagos (la primera semana de cada estación no los tiene)
+    y la partición temporal. Los valores no se transforman."""
+    df = features.dropna(subset=[f"lag_{k}h" for k in LAGS] + ["media_24h"]).copy()
     df["particion"] = assign_split(df["hora"])
-    df = pd.get_dummies(df, columns=["municipio"], prefix="mun", dtype=int)
-
-    scaler = StandardScaler().fit(df.loc[df["particion"] == "train", scaled_cols])
-    df[scaled_cols] = scaler.transform(df[scaled_cols])
-    keep = ["estacion_id", "hora", "particion", "salidas", "fin_de_semana", "festivo",
-            *scaled_cols, *[c for c in df.columns if c.startswith("mun_")]]  # fmt: skip
-    return df[keep].reset_index(drop=True), scaler
+    return df.reset_index(drop=True)
 
 
 @app.command()
@@ -132,37 +94,25 @@ def main(
     log_dataset_version(
         features, panel_path, name="demanda", version="v2", parent="viajes-v1",
         description="Panel estación-hora con ceros en horas activas sin viajes, "
-                    "calendario, festivos, codificación cíclica y rezagos",
+                    "calendario, festivos y rezagos",
         params={"rezagos_h": str(LAGS), "ventana_media_h": 24},
         metrics={"estaciones": features["estacion_id"].nunique(),
                  "pct_horas_sin_salidas": round(100 * (features["salidas"] == 0).mean(), 2),
                  "salidas_media_hora": round(features["salidas"].mean(), 4)},
     )  # fmt: skip
 
-    profiles = station_profiles(features)
-    pca, comps = fit_station_pca(profiles)
-    model_ready, scaler = make_model_ready(features, comps)
-    joblib.dump(scaler, config.MODELS_DIR / "scaler.joblib")
-    joblib.dump(pca, config.MODELS_DIR / "pca_perfiles.joblib")
-    pca_table = config.MODELS_DIR / "pca_componentes_por_estacion.csv"
-    comps.round(4).to_csv(pca_table)
-    ready_path = out_dir / "model_ready.parquet"
-    model_ready.to_parquet(ready_path, index=False)
-    split_sizes = model_ready["particion"].value_counts()
+    model_input = make_model_input(features)
+    input_path = out_dir / "model_input.parquet"
+    model_input.to_parquet(input_path, index=False)
+    split_sizes = model_input["particion"].value_counts()
     log_dataset_version(
-        model_ready, ready_path, name="demanda", version="v3", parent="demanda-v2",
-        description="One-hot de municipio, PCA de perfiles horarios, StandardScaler "
-                    "ajustado solo con train y partición temporal",
-        params={"pca_varianza_objetivo": config.PCA_VARIANCE, "train_hasta": config.TRAIN_END,
-                "valid_hasta": config.VALID_END, "perfil_dimensiones": profiles.shape[1]},
-        metrics={"pca_componentes": pca.n_components_,
-                 "pca_var_total": round(pca.explained_variance_ratio_.sum(), 4),
-                 "pca_var_pc1": round(pca.explained_variance_ratio_[0], 4),
-                 **{f"filas_{k}": int(v) for k, v in split_sizes.items()}},
-        artifacts=[config.MODELS_DIR / "scaler.joblib", config.MODELS_DIR / "pca_perfiles.joblib",
-                   pca_table],
+        model_input, input_path, name="demanda", version="v4", parent="demanda-v2",
+        description="Filas con rezagos completos y partición temporal; el preprocesamiento "
+                    "se aplica dentro del Pipeline de scikit-learn",
+        params={"train_hasta": config.TRAIN_END, "valid_hasta": config.VALID_END},
+        metrics={f"filas_{k}": int(v) for k, v in split_sizes.items()},
     )  # fmt: skip
-    logger.success(f"v2: {len(features):,} filas | v3: {len(model_ready):,} filas -> {out_dir}")
+    logger.success(f"v2: {len(features):,} filas | v4: {len(model_input):,} filas -> {out_dir}")
 
 
 if __name__ == "__main__":

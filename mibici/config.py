@@ -33,8 +33,9 @@ TRIP_FILES = {
     "2026_04": 124927, "2026_05": 125943, "2026_06": 127734,
     "2026_07": 129006, "2026_08": 130362, "2026_09": 131825,
 }  # fmt: skip
-STATIONS_URL = f"{BASE_URL}/1118/nomenclatura_2026_09.csv"
-STATIONS_FILE = RAW_DATA_DIR / "nomenclatura_2026_09.csv"
+# El portal retiró este catálogo (404 desde nov 2026, hallazgo de Daniel); la copia se versiona
+# en el repositorio, en data/external, para que el pipeline no dependa de que siga publicado.
+STATIONS_FILE = EXTERNAL_DATA_DIR / "nomenclatura_2026_09.csv"
 
 # Reglas de limpieza (justificación en references/diccionario_datos.md) --------
 MIN_DURATION_MIN = 1  # menos de 1 minuto: registro técnico, no un viaje
@@ -52,6 +53,9 @@ PCA_VARIANCE = 0.80
 
 # Selección de modelos y ajuste de hiperparámetros (Fase 2) -------------------
 SEED = 42
+# Horizonte del pronóstico: "24h" = la noche anterior (solo rezagos de 24 h o más); "1h" = la hora
+# siguiente (puede usar la demanda de la hora anterior).
+HORIZON = "24h"
 OPTUNA_TRIALS = 25  # pruebas por familia de modelos
 OPTUNA_SAMPLE_ROWS = 400_000  # muestra de entrenamiento para que cada prueba tarde segundos
 TOP_STATIONS_SHARE = 0.20  # el 20 % de las estaciones genera el 54 % de las salidas
@@ -60,6 +64,7 @@ TOP_STATIONS_SHARE = 0.20  # el 20 % de las estaciones genera el 54 % de las sal
 MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", f"sqlite:///{PROJ_ROOT / 'mlflow.db'}")
 MLFLOW_EXPERIMENT = "mibici-fase1-datos"
 MLFLOW_EXPERIMENT_MODELOS = "mibici-fase2-modelos"
+REGISTERED_MODEL = "mibici-demanda-estacion-hora"  # nombre en el Model Registry
 
 # loguru compatible con barras de progreso de tqdm
 try:

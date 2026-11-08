@@ -5,13 +5,7 @@ import pandas as pd
 import pytest
 
 from mibici.dataset import TripCleaner, check_clean_trips
-from mibici.features import (
-    add_features,
-    build_demand_panel,
-    fit_station_pca,
-    make_model_ready,
-    station_profiles,
-)
+from mibici.features import add_features, build_demand_panel, make_model_input
 
 STATIONS = [1, 2, 3]
 
@@ -90,18 +84,16 @@ def test_lags_use_only_past_values():
     assert not f["hora"].dt.hour.isin([1, 2, 3, 4]).any()  # horas sin servicio fuera del panel
 
 
-def test_scaler_uses_train_statistics_only():
+def test_model_input_split_is_temporal():
     rng = np.random.default_rng(0)
     hours = pd.date_range("2026-06-15", "2026-07-15 23:00", freq="h")
     panel = pd.concat([
         pd.DataFrame({"estacion_id": sid, "hora": hours, "salidas": rng.poisson(lam, len(hours))})
         for sid, lam in [(1, 2), (2, 5)]
     ])  # fmt: skip
-    features = add_features(panel, stations_df([1, 2]))
-    _, comps = fit_station_pca(station_profiles(features))
-    ready, _ = make_model_ready(features, comps)
+    model_input = make_model_input(add_features(panel, stations_df([1, 2])))
 
-    train, valid = ready[ready["particion"] == "train"], ready[ready["particion"] == "valid"]
-    assert train["hora"].max() < valid["hora"].min()
-    assert np.allclose(train[["lag_24h", "media_24h", "hora_sin"]].mean(), 0, atol=1e-9)
-    assert ready.notna().all().all()
+    train = model_input[model_input["particion"] == "train"]
+    valid = model_input[model_input["particion"] == "valid"]
+    assert train["hora"].max() < valid["hora"].min()  # el pasado entrena, el futuro evalúa
+    assert model_input.notna().all().all()  # sin filas con rezagos incompletos

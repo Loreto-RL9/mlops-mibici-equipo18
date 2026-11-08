@@ -4,7 +4,8 @@
 
 Datos abiertos de MiBici, el sistema de bicicleta pública del Área Metropolitana de Guadalajara
 (<https://www.mibici.net/es/datos-abiertos/>). Se usaron **12 meses, de octubre de 2025 a septiembre de 2026**
-(un CSV por mes) y el catálogo de estaciones `nomenclatura_2026_09.csv`. `make download` los descarga.
+(un CSV por mes) y el catálogo de estaciones `nomenclatura_2026_09.csv`. `make download` descarga los viajes; el
+catálogo, que el portal retiró en noviembre de 2026, se versiona en `data/external/`.
 
 ## Viajes (`datos_abiertos_AAAA_MM.csv`)
 
@@ -74,7 +75,7 @@ termine después de empezar, que la duración esté en [1, 180] min, que ninguna
 servicio y que ambas estaciones existan. Si alguna
 condición falla, el pipeline se detiene.
 
-## Panel de demanda (v2) y dataset para modelar (v3)
+## Panel de demanda (v2) y entrada del modelo (v4)
 
 * **Unidad de análisis:** estación-hora. **Objetivo:** `salidas`, el número de viajes que inician en la estación
   durante esa hora.
@@ -82,12 +83,17 @@ condición falla, el pipeline se detiene.
   última salida), para no inventar ceros antes de su apertura o después de su retiro.
 * Las horas sin servicio (1:00 a 4:59) se quitan del panel **después** de calcular los rezagos, para que el rezago de
   24 h siga apuntando a la misma hora del día anterior. El panel queda en 2,870,312 estación-horas de 469 estaciones.
-* Variables: `hora_dia`, `dia_semana`, `fin_de_semana`, `festivo` (calendario oficial de México, librería
-  `holidays`), codificación cíclica (`hora_sin`, `hora_cos`, `dia_sin`, `dia_cos`), `capacidad`, `lat`, `lon`,
-  `municipio`, rezagos de 1, 24 y 168 h y la media móvil de las 24 h previas.
-* v3 agrega: one-hot de `municipio`, componentes PCA del perfil horario de cada estación (40 valores: 20 horas de servicio entre semana y
-  20 en fin de semana; 15 componentes explican el 80.7 % de la varianza) y `StandardScaler`
-  ajustado **solo con la partición de entrenamiento** (oct 2025 a jun 2026). Validación: jul y ago 2026.
-  Prueba: sep 2026.
+* Variables de v2: `hora_dia`, `dia_semana`, `fin_de_semana`, `festivo` (calendario oficial de México, biblioteca
+  `holidays`), `capacidad`, `lat`, `lon`, `municipio`, rezagos de 1, 24 y 168 h y la media móvil de las 24 h previas.
+* **v4** (Fase 2) = v2 sin la primera semana de cada estación (le faltan rezagos) y con la columna `particion`:
+  entrenamiento oct 2025 a jun 2026, validación jul y ago 2026, prueba sep 2026. Sus valores **no se transforman**.
 * El mes no se usa como variable: con 12 meses de datos, los meses de validación y prueba nunca aparecen en
   entrenamiento.
+
+### Cambio de la Fase 1 a la Fase 2: v3 → Pipeline
+
+En la Fase 1, **v3** guardaba los datos ya transformados (codificación cíclica, one-hot de `municipio`, 15 componentes
+PCA del perfil de cada estación y `StandardScaler` ajustado con entrenamiento). En la Fase 2 esas transformaciones
+pasaron a un `Pipeline` de scikit-learn (`mibici/modeling/pipeline.py`) que se ajusta solo con entrenamiento y se
+registra junto con el modelo. Así la inferencia aplica exactamente las mismas transformaciones que el entrenamiento y
+no hay un archivo intermedio que pueda desfasarse. v3 se conserva en el historial de MLflow de la Fase 1.

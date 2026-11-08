@@ -1,8 +1,10 @@
-# Selección de modelos y ajuste de hiperparámetros — Fase 2
+# Selección de modelos, ajuste de hiperparámetros y registro — Fase 2
 
-**Rol:** Data Scientist (Daniel Romero) · **Datos:** v3 `demanda-v3` · **Horizonte:** 24 h (pronóstico hecho la noche
-anterior: sin `lag_1h` ni `media_24h`) · **Experimento MLflow:** `mibici-fase2-modelos` · **Comando:** `make tune`
-(`python -m mibici.modeling.tune`). Las cifras salen de [`comparacion_modelos_24h.csv`](comparacion_modelos_24h.csv).
+**Roles:** Data Scientist (Daniel Romero: algoritmos, búsqueda con Optuna y análisis) y Data Engineer (Alonso Rojas:
+Pipeline, v4 y Model Registry) · **Datos:** v4 `demanda-v4` · **Horizonte:** 24 h (pronóstico hecho la noche anterior:
+sin `lag_1h` ni `media_24h`) · **Experimento MLflow:** `mibici-fase2-modelos` · **Modelo registrado:**
+`mibici-demanda-estacion-hora` · **Comando:** `make tune` (`python -m mibici.modeling.tune`). Las cifras salen de
+[`comparacion_modelos_24h.csv`](comparacion_modelos_24h.csv), que se arma con las corridas registradas en MLflow.
 
 ## Por qué estos algoritmos
 
@@ -18,6 +20,9 @@ al menos 10 % frente a la persistencia semanal (misma hora de la semana anterior
 
 ## Cómo se ajustó
 
+- Cada candidato es un **Pipeline de scikit-learn** (`mibici/modeling/pipeline.py`): codificación cíclica, escalado,
+  one-hot del municipio y PCA del perfil horario de cada estación, seguidos del estimador. El preprocesamiento se ajusta
+  dentro de cada prueba con los mismos datos que el estimador, así que no hay fuga de validación hacia entrenamiento.
 - **Optuna** con búsqueda bayesiana (TPE, semilla 42), 25 pruebas por familia. Cada prueba es un run anidado en MLflow
   con sus hiperparámetros, MAE, RMSE, devianza de Poisson, sesgo, MAE en las estaciones de mayor demanda y segundos de
   ajuste.
@@ -25,86 +30,95 @@ al menos 10 % frente a la persistencia semanal (misma hora de la semana anterior
   validación (jul y ago 2026, 552,001 filas). Optuna minimiza la **devianza de Poisson**, la métrica que corresponde a
   un modelo de conteos.
 - El mejor juego de cada familia se **reentrena con todo el entrenamiento** (1,973,154 filas), se evalúa en validación
-  y **una sola vez en prueba** (sep 2026, 279,497 filas), y el modelo queda guardado en el run padre.
-- **Dos rondas.** En la primera, el mejor boosting quedó en el límite del rango (600 iteraciones, el máximo permitido),
-  y ese hiperparámetro explicaba el 73 % de la mejora; el bosque también quedó en los bordes. En la segunda se
-  ampliaron los rangos (tabla de abajo). El boosting eligió 1,000 iteraciones con una tasa de aprendizaje menor y el
-  mismo error (MAE de validación 0.8603 → 0.8608): el límite no lo frenaba. El bosque mejoró de 0.915 a 0.901, pero
-  volvió a pegarse a los bordes, hacia árboles más grandes.
+  y **una sola vez en prueba** (sep 2026, 279,497 filas) y se registra en el Model Registry.
+- **De dónde salen los rangos.** En una primera búsqueda sobre v3 (PR #1), el mejor boosting quedó en el límite del
+  rango (600 iteraciones) y el bosque también quedó en los bordes, así que se ampliaron los rangos (tabla de abajo).
+  Con esos rangos, la búsqueda se repitió dentro del Pipeline sobre v4.
 
-| Familia | Hiperparámetro | Rango (ronda 2) | Mejor valor |
+| Familia | Hiperparámetro | Rango | Mejor valor |
 |---|---|---|---:|
-| Regresión de Poisson | `alpha` (regularización) | 1e-6 a 1, log | 0.165 |
-| Bosque aleatorio | `n_estimators` | 50 a 250 | 250 |
-| | `max_depth` | 8 a 22 | 16 |
+| Regresión de Poisson | `alpha` (regularización) | 1e-6 a 1, log | 1.1e-06 |
+| Bosque aleatorio | `n_estimators` | 50 a 250 | 200 |
+| | `max_depth` | 8 a 22 | 17 |
 | | `min_samples_leaf` | 30 a 1,000, log | 30 |
-| | `max_features` | 0.3 a 0.8 | 0.597 |
-| HistGradientBoosting Poisson | `learning_rate` | 0.02 a 0.3, log | 0.0374 |
-| | `max_iter` | 200 a 1,500 | 1,000 |
-| | `max_leaf_nodes` | 15 a 255, log | 48 |
-| | `min_samples_leaf` | 20 a 500, log | 222 |
-| | `l2_regularization` | 0.001 a 10, log | 0.0502 |
+| | `max_features` | 0.3 a 0.8 | 0.537 |
+| HistGradientBoosting Poisson | `learning_rate` | 0.02 a 0.3, log | 0.0323 |
+| | `max_iter` | 200 a 1,500 | 600 |
+| | `max_leaf_nodes` | 15 a 255, log | 179 |
+| | `min_samples_leaf` | 20 a 500, log | 155 |
+| | `l2_regularization` | 0.001 a 10, log | 1.187 |
 
 ## Resultados (horizonte 24 h)
 
-| Modelo | MAE valid | MAE prueba | RMSE prueba | Devianza prueba | Sesgo prueba | MAE prueba, 20 % de estaciones con más demanda |
-|---|---:|---:|---:|---:|---:|---:|
-| Persistencia semanal | 1.014 | 1.169 | 2.171 | — | −0.140 | 2.375 |
-| Regresión de Poisson | 1.255 | 1.399 | 3.129 | 2.065 | −0.067 | 2.601 |
-| Bosque aleatorio | 0.901 | 1.040 | 1.783 | 1.316 | −0.153 | 2.007 |
-| **HistGradientBoosting Poisson** | **0.861** | **1.000** | **1.704** | **1.271** | −0.234 | **1.896** |
+| Modelo | Versión | MAE valid | MAE prueba | RMSE prueba | Devianza prueba | Sesgo prueba | MAE prueba, 20 % de estaciones con más demanda |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Persistencia semanal | — | 1.014 | 1.169 | 2.171 | — | −0.140 | 2.375 |
+| Regresión de Poisson | 1 | 1.207 | 1.342 | 2.900 | 1.974 | −0.120 | 2.540 |
+| Bosque aleatorio | 3 | 0.902 | 1.042 | 1.784 | 1.319 | −0.150 | 2.005 |
+| **HistGradientBoosting Poisson** | 2 (`@champion`) | **0.865** | **1.005** | **1.712** | **1.281** | −0.228 | **1.896** |
 
 MAE y RMSE en bicis por estación y hora. El sesgo es la predicción media menos la real: negativo = el modelo se queda
 corto. La devianza no aplica a la persistencia, porque predice ceros exactos y la devianza de Poisson exige
 predicciones positivas.
 
-- **El boosting gana en todas las métricas.** Baja el MAE 15.1 % en validación y 14.4 % en prueba frente a la
-  persistencia semanal, así que cumple la meta del ML Canvas. En las estaciones de mayor demanda, las que importan
-  para el rebalanceo, la mejora es de 20.2 %.
-- **El modelo lineal no alcanza:** queda peor que la persistencia. Sin árboles no capta interacciones como «estación
-  de oficinas a las 8 h», lo que justifica los modelos basados en árboles.
-- **Ajustar hiperparámetros aporta poco frente a elegir bien el algoritmo.** El boosting pasó de 0.875 (configuración
-  por defecto de la Fase 1) a 0.861 en validación (−1.6 %); casi toda la ganancia viene de usar árboles con la pérdida
-  correcta para conteos.
-- **El bosque queda en segundo lugar y es mucho más pesado:** su modelo ocupa 176 MB contra 8.8 MB del boosting, lo que
+- **El boosting gana en todas las métricas salvo el sesgo.** Baja el MAE 14.6 % en validación y 14.0 % en prueba frente
+  a la persistencia semanal (20.2 % en las estaciones de mayor demanda), así que cumple la meta de −10 % del ML Canvas.
+- **El modelo lineal no alcanza:** queda peor que la persistencia en MAE. Sin árboles no capta interacciones como
+  «estación de oficinas a las 8 h», lo que justifica los modelos basados en árboles.
+- **El bosque queda en segundo lugar** (MAE de prueba 1.042) y su modelo pesa 162 MB contra 12 MB del boosting, lo que
   importa para servirlo en un contenedor en la Fase 3.
+- **Ajustar hiperparámetros aporta poco frente a elegir bien el algoritmo.** El boosting pasó de 0.875 (configuración
+  por defecto de la Fase 1) a 0.865 en validación (−1.1 %); casi toda la ganancia viene de usar árboles con la pérdida
+  correcta para conteos.
+- **Mover el preprocesamiento al Pipeline no cambió el desempeño:** con la búsqueda sobre v3 (PR #1) el boosting tuvo
+  0.861 en validación y 1.000 en prueba; ahora, 0.865 y 1.005, y el bosque 0.901/1.040 contra 0.902/1.042.
 
 ![Historial de la optimización del boosting](figures/fase2_optuna_historial_hgb_poisson.png)
 
 ![Importancia de los hiperparámetros del boosting](figures/fase2_optuna_importancia_hgb_poisson.png)
 
-En la ronda 2, la tasa de aprendizaje explica el 67 % de la variación de la devianza entre pruebas; con suficientes
-iteraciones, el número exacto de ellas ya casi no importa (7 %).
+La mejor prueba del boosting fue la última (devianza 1.133 contra 1.142 de la segunda): la búsqueda seguía mejorando,
+pero a un ritmo bajo (0.7 % en 23 pruebas). Según la figura de Optuna, el número de iteraciones (34 %) y la
+regularización L2 (31 %) explican la mayor parte de la variación de la devianza entre pruebas. Con 25 pruebas esa
+estimación es ruidosa, así que conviene leerla como orientación y no como un ranking exacto.
 
-## Recomendación
+## Model Registry
 
-Registrar el **HistGradientBoosting con pérdida Poisson** de la ronda 2 como candidato en el Model Registry: es el mejor en
-todas las métricas, pesa 8.8 MB y predice rápido. Su run padre en `mibici-fase2-modelos` se llama `hgb_poisson-24h`
-y guarda los hiperparámetros (`mejor_*`), las métricas de validación y prueba (`*_valid`, `*_test`), las figuras de
-Optuna, la lista de variables y el modelo. Para reconstruirlo en código: `MODELS["hgb_poisson"](best_params)`.
+El Pipeline final de cada familia es una versión de `mibici-demanda-estacion-hora`, con:
+
+- **Descripción** con la familia, el horizonte, el dataset y el MAE de validación y de prueba.
+- **Etiquetas** con los hiperparámetros (`param_*`) y todas las métricas de validación y prueba (`mae_valid`,
+  `devianza_poisson_valid`, `mae_test`, `sesgo_test`, `mae_top_estaciones_test`, …).
+- **Firma de entrada** (las 11 columnas de v4 que usa el Pipeline) y un ejemplo de entrada.
+- En su run: figuras de Optuna, el pronóstico de una semana, el MAE por hora y la lista de variables.
+
+`set_champion()` asigna el alias **`champion`** a la versión con menor devianza de Poisson en validación, la misma
+métrica que optimiza Optuna; `predict.py` y el notebook `2.0-equipo18-analisis-del-modelo` cargan ese alias. Hoy es
+la versión 2 (HistGradientBoosting Poisson). Si un reentrenamiento produce una versión mejor, el alias se
+mueve y el código de inferencia no cambia.
 
 ## Qué vigilar
 
-- **Septiembre se subestima** (sesgo −0.23 bicis por hora en prueba). El EDA lo anticipaba: septiembre es el mes más alto
-  del año, ≈35 % arriba del promedio de los meses de entrenamiento. Antes de pronosticar un mes nuevo conviene reentrenar
-  con los meses más recientes (julio y agosto incluidos) y, en la Fase 3, vigilar este desvío como data drift.
-- **El error se concentra donde más importa:** el MAE de las estaciones de mayor demanda (1.9) duplica el global (1.0).
-  El monitoreo debería reportarlo por separado.
+- **Septiembre se subestima** (sesgo −0.23 bicis por hora en prueba). El EDA lo anticipaba: septiembre es el mes más
+  alto del año, ≈35 % arriba del promedio de los meses de entrenamiento. Antes de pronosticar un mes nuevo conviene
+  reentrenar con los meses más recientes (julio y agosto incluidos) y, en la Fase 3, vigilar este desvío como deriva.
+- **El error se concentra donde más importa:** el MAE de las estaciones de mayor demanda (1.9) duplica el global (1.0),
+  y por hora del día el error es máximo en los picos de las 8 y las 18 h. El monitoreo debería reportarlos por separado.
 
 ## Interacción con los otros roles
 
-- **Data Engineer:** los modelos consumen v3 tal como sale del pipeline. Al reproducirlo apareció un problema: el
-  catálogo `nomenclatura_2026_09.csv` ya no existe en mibici.net (HTTP 404); el portal publica ahora
-  `nomenclatura_2026_10.csv`, con 470 estaciones en lugar de 484 y en latin-1. El original se recuperó del Internet
-  Archive (misma huella SHA-1 que la copia archivada el 9-oct) y con él los conteos v0–v3 y la línea base coinciden
-  exactamente con el README. Conviene guardar el catálogo en el repositorio o en DVC.
-- **ML Engineer:** integra el estimador ganador en el pipeline de scikit-learn y lo registra en el Model Registry.
-- **Software Engineer / DevOps:** `tests/test_tune.py` corre en el CI con datos sintéticos (no necesita MLflow ni
-  descargas) y `make tune` repite el experimento completo (≈25 min en 24 núcleos).
+- **Data Engineer → Data Scientist:** v4 y el Pipeline definen qué recibe cada modelo; la búsqueda solo cambia el
+  estimador final. Daniel encontró que el catálogo `nomenclatura_2026_09.csv` ya no existe en mibici.net (HTTP 404) y lo
+  recuperó del Internet Archive (misma huella SHA-1); ahora esa copia se versiona en `data/external/`.
+- **ML Engineer:** revisa el Pipeline, el registro y la carga con `predict.py`, y verifica que el flujo se reproduzca en
+  otra máquina (en la Fase 1 encontró el HTTP 406 de la descarga, que ahora tiene respaldo con curl).
+- **Software Engineer / DevOps:** `tests/test_tune.py` y `tests/test_pipeline.py` corren en el CI con datos sintéticos
+  (no necesitan MLflow ni descargas). Con 2 núcleos, `make tune` tarda alrededor de 45 minutos; cada familia puede
+  correrse por separado.
 
 ## Uso de inteligencia artificial
 
-Anthropic. (2026). *Claude Opus 5.5* [Modelo de lenguaje grande]. Se utilizó para escribir `mibici/modeling/tune.py` y
-sus pruebas, correr los experimentos y redactar este documento. Los criterios de evaluación (sesgo y error en las
-estaciones de mayor demanda) salen de los hallazgos del EDA de la Fase 1. El código pasa por la revisión de otro
-integrante del equipo en el pull request antes de integrarse a `main`.
+Anthropic. (2026). *Claude Opus 5.5* [Modelo de lenguaje grande]. Se utilizó para escribir `mibici/modeling/tune.py`,
+`train.py`, `pipeline.py` y sus pruebas, correr los experimentos y redactar este documento. Los criterios de evaluación
+(sesgo y error en las estaciones de mayor demanda) salen de los hallazgos del EDA de la Fase 1. El código pasa por la
+revisión de otro integrante del equipo en el pull request antes de integrarse a `main`.

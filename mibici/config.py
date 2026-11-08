@@ -50,9 +50,16 @@ VALID_END = "2026-08-31 23:00"
 # PCA de los perfiles horarios de cada estación: componentes hasta explicar el 80 %
 PCA_VARIANCE = 0.80
 
+# Selección de modelos y ajuste de hiperparámetros (Fase 2) -------------------
+SEED = 42
+OPTUNA_TRIALS = 25  # pruebas por familia de modelos
+OPTUNA_SAMPLE_ROWS = 400_000  # muestra de entrenamiento para que cada prueba tarde segundos
+TOP_STATIONS_SHARE = 0.20  # el 20 % de las estaciones genera el 54 % de las salidas
+
 # MLflow ----------------------------------------------------------------------
 MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", f"sqlite:///{PROJ_ROOT / 'mlflow.db'}")
 MLFLOW_EXPERIMENT = "mibici-fase1-datos"
+MLFLOW_EXPERIMENT_MODELOS = "mibici-fase2-modelos"
 
 # loguru compatible con barras de progreso de tqdm
 try:

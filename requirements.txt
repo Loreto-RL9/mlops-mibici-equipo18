@@ -4,6 +4,7 @@ loguru>=0.7
 matplotlib>=3.8
 mlflow>=3.0
 numpy>=1.26
+optuna>=4.0
 pandas>=2.2
 pip
 pyarrow>=15.0

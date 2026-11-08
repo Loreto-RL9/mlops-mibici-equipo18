@@ -1,9 +1,9 @@
 modelo,particion,mae,rmse,devianza_poisson,sesgo,mae_top_estaciones
 persistencia_semanal,valid,1.0135,1.8318,7.1962,-0.0094,2.0152
 persistencia_semanal,test,1.169,2.1708,8.141,-0.1398,2.3748
-poisson_glm,valid,1.2552,3.7674,1.8718,0.1972,2.0979
-poisson_glm,test,1.3992,3.1293,2.0652,-0.0673,2.6013
-random_forest,valid,0.9015,1.45,1.1587,0.0546,1.6509
-random_forest,test,1.0402,1.7828,1.3164,-0.1528,2.0073
-hgb_poisson,valid,0.8608,1.373,1.091,0.0461,1.5804
-hgb_poisson,test,1.0002,1.7039,1.2711,-0.2337,1.8959
+poisson_glm,valid,1.2073,3.4421,1.7785,0.171,2.0622
+poisson_glm,test,1.3418,2.9002,1.974,-0.1202,2.5402
+random_forest,valid,0.9024,1.4498,1.1611,0.0581,1.6473
+random_forest,test,1.0416,1.7837,1.3194,-0.1497,2.005
+hgb_poisson,valid,0.8654,1.3739,1.0989,0.0571,1.5755
+hgb_poisson,test,1.0054,1.7117,1.2809,-0.2282,1.896

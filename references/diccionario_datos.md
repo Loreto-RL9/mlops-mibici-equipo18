@@ -4,7 +4,8 @@
 
 Datos abiertos de MiBici, el sistema de bicicleta pública del Área Metropolitana de Guadalajara
 (<https://www.mibici.net/es/datos-abiertos/>). Se usaron **12 meses, de octubre de 2025 a septiembre de 2026**
-(un CSV por mes) y el catálogo de estaciones `nomenclatura_2026_09.csv`. `make download` los descarga.
+(un CSV por mes) y el catálogo de estaciones `nomenclatura_2026_09.csv`. `make download` descarga los viajes; el
+catálogo, que el portal retiró en noviembre de 2026, se versiona en `data/external/`.
 
 ## Viajes (`datos_abiertos_AAAA_MM.csv`)
 

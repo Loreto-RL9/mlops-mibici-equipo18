@@ -59,12 +59,38 @@ HORIZON = "24h"
 OPTUNA_TRIALS = 25  # pruebas por familia de modelos
 OPTUNA_SAMPLE_ROWS = 400_000  # muestra de entrenamiento para que cada prueba tarde segundos
 TOP_STATIONS_SHARE = 0.20  # el 20 % de las estaciones genera el 54 % de las salidas
+MODEL_DEFAULTS = {
+    "poisson_glm": {"max_iter": 1000},
+    "random_forest": {"max_samples": 0.2, "n_jobs": -1, "random_state": SEED},
+    "hgb_poisson": {"loss": "poisson", "early_stopping": False, "random_state": SEED},
+}
+# Cada especificación se pasa al método suggest_{type} de Optuna. Los rangos quedan aquí para
+# que el módulo de búsqueda no contenga hiperparámetros fijos.
+OPTUNA_SEARCH_SPACES = {
+    "poisson_glm": {
+        "alpha": {"type": "float", "low": 1e-6, "high": 1.0, "log": True},
+    },
+    "random_forest": {
+        "n_estimators": {"type": "int", "low": 50, "high": 250, "step": 25},
+        "max_depth": {"type": "int", "low": 8, "high": 22},
+        "min_samples_leaf": {"type": "int", "low": 30, "high": 1000, "log": True},
+        "max_features": {"type": "float", "low": 0.3, "high": 0.8},
+    },
+    "hgb_poisson": {
+        "learning_rate": {"type": "float", "low": 0.02, "high": 0.3, "log": True},
+        "max_iter": {"type": "int", "low": 200, "high": 1500, "step": 100},
+        "max_leaf_nodes": {"type": "int", "low": 15, "high": 255, "log": True},
+        "min_samples_leaf": {"type": "int", "low": 20, "high": 500, "log": True},
+        "l2_regularization": {"type": "float", "low": 1e-3, "high": 10.0, "log": True},
+    },
+}
 
 # MLflow ----------------------------------------------------------------------
 MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", f"sqlite:///{PROJ_ROOT / 'mlflow.db'}")
 MLFLOW_EXPERIMENT = "mibici-fase1-datos"
 MLFLOW_EXPERIMENT_MODELOS = "mibici-fase2-modelos"
 REGISTERED_MODEL = "mibici-demanda-estacion-hora"  # nombre en el Model Registry
+MODEL_ALIAS = "champion"
 
 # loguru compatible con barras de progreso de tqdm
 try:

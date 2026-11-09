@@ -5,6 +5,7 @@ import optuna
 import pandas as pd
 import pytest
 
+from mibici import config
 from mibici.modeling.tune import MODELS, SPACES, evaluate, top_stations
 
 
@@ -34,6 +35,10 @@ def test_each_family_fits_with_sampled_params(name):
     assert pred.shape == (3000,)
     assert (pred >= 0).all()  # conteos: nunca negativos
     assert evaluate(y, pred)["mae"] < np.abs(y - y.mean()).mean()  # mejor que predecir la media
+
+
+def test_every_model_has_defaults_and_an_optuna_space():
+    assert set(MODELS) == set(config.MODEL_DEFAULTS) == set(config.OPTUNA_SEARCH_SPACES)
 
 
 def _middle_of_space(name):

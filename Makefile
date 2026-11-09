@@ -55,6 +55,16 @@ format:
 test:
 	$(PYTHON_INTERPRETER) -m pytest tests
 
+## Recuperar la versión registrada desde el remoto DVC local C:\mlops\files
+.PHONY: dvc-pull
+dvc-pull:
+	$(RUN) dvc pull
+
+## Subir una nueva versión al remoto DVC configurado
+.PHONY: dvc-push
+dvc-push:
+	$(RUN) dvc push
+
 
 #################################################################################
 # PROJECT RULES                                                                 #

@@ -1,6 +1,7 @@
 # Data (solo se versiona el catálogo de estaciones, que el portal ya no publica)
-/data/*
-!/data/external/
+/data/raw/
+/data/interim/
+/data/processed/
 /data/external/*
 !/data/external/nomenclatura_2026_09.csv
 

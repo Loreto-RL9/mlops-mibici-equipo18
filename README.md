@@ -8,8 +8,8 @@
 
 Predicción de la **demanda horaria por estación** del sistema de bicicleta pública MiBici (Guadalajara) a partir de
 sus datos abiertos, construida con prácticas de MLOps: estructura Cookiecutter Data Science, código modular,
-un `Pipeline` de scikit-learn, ajuste de hiperparámetros con Optuna, seguimiento de experimentos y Model Registry en
-MLflow, pruebas automáticas y CI.
+un `Pipeline` de scikit-learn, datos versionados con DVC, ajuste de hiperparámetros con Optuna, seguimiento de
+experimentos y Model Registry en MLflow, pruebas automáticas y CI.
 
 ## Problema y propuesta de valor
 
@@ -29,14 +29,29 @@ justificación de cada regla de limpieza: [`references/diccionario_datos.md`](re
 
 ```bash
 make requirements      # con uv: uv sync --frozen (Python 3.12 y versiones exactas de uv.lock)
-# sin uv: python -m venv .venv, activarlo (Windows: .venv\Scripts\activate) y luego make requirements
+make dvc-pull          # recupera raw, interim y processed desde C:\mlops\files
 make pipeline          # test -> download -> data -> features -> plots -> tune -> predict
 make mlflow-ui         # http://127.0.0.1:8080
 ```
 
+`make pipeline` también puede empezar sin `dvc-pull`: descarga y regenera los datos desde las
+fuentes. DVC permite recuperar exactamente la versión usada en los resultados sin depender de que
+el portal conserve los archivos. Para publicar una versión nueva después de regenerarla se ejecuta
+`dvc add data/raw data/interim data/processed`, se versionan los archivos `.dvc` con Git y se usa
+`make dvc-push`.
+
+El remoto predeterminado es la carpeta local **`C:\mlops\files`**, fuera del repositorio. Esta ruta
+funciona en la máquina donde se preparó la entrega, pero no comparte los datos entre integrantes ni
+se publica con Git. Para trabajo colaborativo, el equipo debe provisionar un almacenamiento
+accesible para todos y sustituirlo, por ejemplo, con
+`uv run dvc remote modify storage <URL-DEL-REMOTO>`; después se ejecuta `make dvc-push` y se
+versiona el cambio de `.dvc/config`. Las credenciales, si las requiere el proveedor, deben guardarse
+en la configuración local de DVC y no en Git.
+
 | Paso | Comando | Qué hace |
 |---|---|---|
 | Pruebas | `make test` | 19 pruebas con datos sintéticos y un Model Registry temporal (no descargan nada); también corren en el CI |
+| Datos versionados | `make dvc-pull` | Recupera del remoto DVC configurado la versión registrada de `raw`, `interim` y `processed` |
 | Descarga | `make download` | 12 CSV mensuales (urllib y, si el portal lo rechaza, curl) |
 | Limpieza | `make data` | v0 crudo y v1 limpio, registrados en MLflow |
 | Variables | `make features` | v2 panel estación-hora y v4 entrada del modelo con partición temporal |
@@ -128,7 +143,8 @@ model.predict(df[model.feature_names_in_])   # df con las columnas de v4
 ```
 ├── Makefile             <- requirements, test, lint, download, data, features, plots, tune, predict, pipeline
 ├── .github/workflows/   <- CI: ruff y pytest en cada push y pull request
-├── data/external/       <- Catálogo de estaciones versionado (raw, interim y processed se regeneran con make)
+├── data/                <- raw, interim y processed con DVC; catálogo external en Git
+├── docs/                <- Documentación generada de Cookiecutter
 ├── notebooks/           <- Solo exploración; importan el paquete mibici
 ├── references/          <- ML Canvas, diccionario de datos y verificación de reproducibilidad
 ├── reports/             <- Hallazgos del EDA, selección de modelos, tabla comparativa y figuras

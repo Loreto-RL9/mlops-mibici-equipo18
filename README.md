@@ -179,22 +179,17 @@ make export-model                          # el campeón a models/champion (lo c
 docker build -t mibici-api:latest .        # o: make image (usa Podman si está instalado)
 docker run -p 8000:8000 mibici-api:latest  # o: make run-image; HEALTHCHECK sobre /health
 make smoke                                 # compara la API contra el golden set (reports/golden_set.json)
-make publish DOCKERHUB_USER=<usuario>      # sube a Docker Hub (antes: docker login)
+make publish DOCKERHUB_USER=<usuario>      # Docker Hub, amd64 + arm64 (antes: docker login)
 ```
 
-**Tags versionados en Docker Hub** (`docker.io/<usuario>/mibici-api`):
+**Tags versionados en Docker Hub** (`docker.io/<usuario>/mibici-api`). `make publish` construye la imagen para
+`linux/amd64` y `linux/arm64`, así corre igual en una PC Intel/AMD, en Windows y en una Mac con Apple Silicon:
 
 | Tag | Qué es |
 |---|---|
-| `1.0.0-modelo2` | API 1.0.0 sirviendo la versión 2 del modelo (inmutable: para auditar qué se desplegó) |
+| `1.0.0-<run>` | API 1.0.0 con el modelo del run de MLflow `<run>` (7 caracteres del `run_id`). Es inmutable: sirve para auditar exactamente qué se desplegó |
 | `1.0.0` | Última imagen de la API 1.0.0 |
 | `latest` | Última imagen publicada |
-
-
-La imagen lleva sólo el entorno, el paquete `mibici`, el catálogo de estaciones y `models/champion`; no necesita
-`mlflow.db` ni los datos. El workflow `contenedor.yml` la construye con Podman en cada push y prueba `/health`,
-`/predict` y que corra como el usuario 10001. La portabilidad entre sistemas operativos se demuestra con el
-golden set: [`references/portabilidad.md`](references/portabilidad.md).
 
 ## Monitoreo: data drift y pérdida de desempeño
 

@@ -93,6 +93,7 @@ REGISTERED_MODEL = "mibici-demanda-estacion-hora"  # nombre en el Model Registry
 MODEL_ALIAS = "champion"
 
 # Servicio (API) ---------------------------------------------------------------
+API_VERSION = "1.0.0"  # versión del contrato de la API (va en los tags de la imagen)
 # El contenedor sirve una copia del modelo exportada del registro (make export-model), así que no
 # necesita la base de MLflow. Las rutas se pueden cambiar con variables de entorno.
 SERVING_MODEL_DIR = Path(os.getenv("MIBICI_MODEL_DIR", MODELS_DIR / "champion"))

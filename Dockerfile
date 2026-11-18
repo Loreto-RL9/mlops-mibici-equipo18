@@ -1,8 +1,8 @@
 # Imagen del servicio de pronóstico de MiBici (FastAPI + Pipeline @champion).
-# Funciona igual con Podman y con Docker:
-#   make export-model                       # copia el campeón a models/champion
-#   podman build -t mibici-api -f Containerfile .
-#   podman run --rm -p 8000:8000 mibici-api
+# Funciona igual con Docker y con Podman (antes hay que exportar el campeón: make export-model):
+#   docker build -t mibici-api:latest .
+#   docker run -p 8000:8000 mibici-api:latest        # http://127.0.0.1:8000/docs
+# Publicación en Docker Hub con tags versionados: make publish DOCKERHUB_USER=<usuario>
 #
 # Dos etapas: la primera instala las dependencias exactas de uv.lock con uv; la segunda copia sólo
 # el entorno, el código, el catálogo de estaciones y el modelo, y corre como usuario sin root.

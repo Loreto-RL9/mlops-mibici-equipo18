@@ -4,7 +4,7 @@
     <img src="https://img.shields.io/badge/CCDS-Project%20template-328F97?logo=cookiecutter" />
 </a>
 
-**TC5044.10 Operaciones de Aprendizaje Automático (MLOps) · Equipo 18 · Fase 2**
+**TC5044.10 Operaciones de Aprendizaje Automático (MLOps) · Equipo 18 · Entrega Final**
 
 Predicción de la **demanda horaria por estación** del sistema de bicicleta pública MiBici (Guadalajara) a partir de
 sus datos abiertos, construida con prácticas de MLOps: estructura Cookiecutter Data Science, código modular,
@@ -29,6 +29,7 @@ justificación de cada regla de limpieza: [`references/diccionario_datos.md`](re
 
 ```bash
 make requirements      # con uv: uv sync --frozen (Python 3.12 y versiones exactas de uv.lock)
+                       # sin uv: pip install -r requirements.txt (exportado de uv.lock, mismas versiones)
 make dvc-pull          # recupera raw, interim y processed desde C:\mlops\files
 make pipeline          # test -> download -> data -> features -> plots -> tune -> predict
 make mlflow-ui         # http://127.0.0.1:8080
@@ -50,7 +51,7 @@ en la configuración local de DVC y no en Git.
 
 | Paso | Comando | Qué hace |
 |---|---|---|
-| Pruebas | `make test` | 19 pruebas con datos sintéticos y un Model Registry temporal (no descargan nada); también corren en el CI |
+| Pruebas | `uv run pytest -q` (o `make test`) | 51 pruebas unitarias y de integración con datos sintéticos (no descargan nada); también corren en el CI |
 | Datos versionados | `make dvc-pull` | Recupera del remoto DVC configurado la versión registrada de `raw`, `interim` y `processed` |
 | Descarga | `make download` | 12 CSV mensuales (urllib y, si el portal lo rechaza, curl) |
 | Limpieza | `make data` | v0 crudo y v1 limpio, registrados en MLflow |
@@ -140,6 +141,13 @@ model.predict(df[model.feature_names_in_])   # df con las columnas de v4
 
 ## Servicio de pronóstico (API)
 
+**Artefacto que sirve la API:** `models:/mibici-demanda-estacion-hora@champion`, el Pipeline de HistGradientBoosting
+Poisson con los hiperparámetros de la Fase 2. En el registro de la Fase 2 es la **versión 2**
+(`models:/mibici-demanda-estacion-hora/2`); al reproducir el pipeline en un entorno limpio quedó como versión 3, con
+métricas idénticas (ver [`references/reproducibilidad.md`](references/reproducibilidad.md)). `make export-model` copia
+esa versión a `models/champion` junto con `model_meta.json` (nombre, versión, `run_id`, fecha y métricas), y
+`GET /modelo` lo devuelve. Esquema de entrada y salida: Swagger en `/docs` y [`docs/openapi.json`](docs/openapi.json).
+
 ```bash
 make export-model   # copia @champion del Model Registry a models/champion (+ model_meta.json)
 make serve          # FastAPI en http://127.0.0.1:8000 (documentación interactiva en /docs)
@@ -167,10 +175,21 @@ POST /predict
 ## Contenedor (Podman o Docker) y portabilidad
 
 ```bash
-make export-model && make image   # imagen mibici-api: dos etapas, dependencias de uv.lock, usuario sin root
-make run-image                    # http://127.0.0.1:8000, con HEALTHCHECK sobre /health
-make smoke                        # compara la API contra el golden set (reports/golden_set.json)
+make export-model                          # el campeón a models/champion (lo copia la imagen)
+docker build -t mibici-api:latest .        # o: make image (usa Podman si está instalado)
+docker run -p 8000:8000 mibici-api:latest  # o: make run-image; HEALTHCHECK sobre /health
+make smoke                                 # compara la API contra el golden set (reports/golden_set.json)
+make publish DOCKERHUB_USER=<usuario>      # sube a Docker Hub (antes: docker login)
 ```
+
+**Tags versionados en Docker Hub** (`docker.io/<usuario>/mibici-api`):
+
+| Tag | Qué es |
+|---|---|
+| `1.0.0-modelo2` | API 1.0.0 sirviendo la versión 2 del modelo (inmutable: para auditar qué se desplegó) |
+| `1.0.0` | Última imagen de la API 1.0.0 |
+| `latest` | Última imagen publicada |
+
 
 La imagen lleva sólo el entorno, el paquete `mibici`, el catálogo de estaciones y `models/champion`; no necesita
 `mlflow.db` ni los datos. El workflow `contenedor.yml` la construye con Podman en cada push y prueba `/health`,
@@ -199,10 +218,10 @@ estaciones nuevas: [`references/monitoreo.md`](references/monitoreo.md).
 
 ```
 ├── Makefile             <- requirements, test, lint, download, data, features, plots, tune, predict, pipeline
-├── Containerfile        <- Imagen del servicio (Podman o Docker), dos etapas y usuario sin root
+├── Dockerfile           <- Imagen del servicio (Docker o Podman), dos etapas y usuario sin root
 ├── .github/workflows/   <- CI (ruff y pytest) y Contenedor (imagen + prueba de humo)
 ├── data/                <- raw, interim y processed con DVC; catálogo external en Git
-├── docs/                <- Documentación generada de Cookiecutter
+├── docs/                <- openapi.json (esquema de la API)
 ├── notebooks/           <- Solo exploración; importan el paquete mibici
 ├── references/          <- ML Canvas, diccionario de datos y verificación de reproducibilidad
 ├── reports/             <- Hallazgos del EDA, selección de modelos, tabla comparativa y figuras

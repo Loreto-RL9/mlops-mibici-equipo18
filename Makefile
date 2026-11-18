@@ -126,12 +126,34 @@ golden:
 .PHONY: image
 image:
 	@test -f models/champion/MLmodel || (echo "Falta models/champion: corre make export-model" && exit 1)
-	$(ENGINE) build $(BUILD_FLAGS) -t $(IMAGE) -f Containerfile .
+	$(ENGINE) build $(BUILD_FLAGS) -t $(IMAGE) -f Dockerfile \
+		--label mibici.modelo.version=$(MODEL_VERSION) --label mibici.api.version=$(API_VERSION) .
 
 ## Correr el contenedor en http://127.0.0.1:8000 (Ctrl+C para detenerlo)
 .PHONY: run-image
 run-image:
 	$(ENGINE) run --rm --name $(IMAGE) -p 8000:8000 $(IMAGE)
+
+API_VERSION = $(shell $(PYTHON_INTERPRETER) -c "from mibici import config; print(config.API_VERSION)" 2>/dev/null)
+MODEL_VERSION = $(shell python3 -c "import json; print(json.load(open('models/champion/model_meta.json'))['version'])" 2>/dev/null)
+DOCKERHUB_USER ?=
+REPO = docker.io/$(DOCKERHUB_USER)/mibici-api
+
+## Publicar la imagen en Docker Hub: tags API-modelo, API y latest (requiere docker login)
+.PHONY: publish
+publish:
+	@test -n "$(DOCKERHUB_USER)" || (echo "Uso: make publish DOCKERHUB_USER=<usuario>" && exit 1)
+	$(ENGINE) tag $(IMAGE) $(REPO):$(API_VERSION)-modelo$(MODEL_VERSION)
+	$(ENGINE) tag $(IMAGE) $(REPO):$(API_VERSION)
+	$(ENGINE) tag $(IMAGE) $(REPO):latest
+	$(ENGINE) push $(REPO):$(API_VERSION)-modelo$(MODEL_VERSION)
+	$(ENGINE) push $(REPO):$(API_VERSION)
+	$(ENGINE) push $(REPO):latest
+
+## Exportar el esquema OpenAPI de la API a docs/openapi.json
+.PHONY: openapi
+openapi:
+	$(PYTHON_INTERPRETER) -c "import json; from mibici.api import app; open('docs/openapi.json', 'w').write(json.dumps(app.openapi(), indent=2, ensure_ascii=False))"
 
 ## Comparar la API en marcha (make serve o make run-image) contra el golden set
 .PHONY: smoke

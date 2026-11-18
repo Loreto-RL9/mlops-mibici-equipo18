@@ -138,6 +138,23 @@ run-image:
 smoke:
 	$(PYTHON_INTERPRETER) -m mibici.smoke check --url http://127.0.0.1:8000
 
+## Monitoreo: drift de entradas, predicciones y demanda real contra validación, escenarios
+## sintéticos, error mensual y alertas (resultados en reports/monitoreo y en MLflow)
+.PHONY: drift
+drift:
+	$(PYTHON_INTERPRETER) -m mibici.monitoring drift
+
+## Reportes HTML de Evidently sobre las mismas muestras (entorno aislado: Evidently no soporta pandas 3)
+.PHONY: drift-evidently
+drift-evidently:
+	uv run --no-project --python 3.12 --with "evidently==0.7.23" --with "pandas<3" --with pyarrow \
+		python mibici/monitoring_evidently.py reports/monitoreo
+
+## Drift de las peticiones reales que guardó la API en logs/predicciones.jsonl
+.PHONY: drift-log
+drift-log:
+	$(PYTHON_INTERPRETER) -m mibici.monitoring log
+
 ## Pipeline completo de punta a punta (primero corre las pruebas)
 .PHONY: pipeline
 pipeline: test download data features plots tune predict

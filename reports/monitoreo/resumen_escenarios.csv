@@ -1,0 +1,6 @@
+escenario,descripcion,columnas_con_drift,proporcion_drift,drift_dataset,drift_prediccion,drift_etiqueta,mae,sesgo,devianza_poisson,mae_persistencia,mejora_vs_persistencia_pct,mae_vs_validacion,alerta_desempeno,alerta_sesgo,alerta_persistencia_gana,accion
+validacion,Línea base: validación jul–ago 2026 sin cambios,0,0.0,False,False,False,0.8654,0.0571,1.0989,1.0135,14.6117,1.0,False,False,False,sin acción
+septiembre_real,Cambio estacional real: septiembre 2026 (mes de prueba),2,0.2,False,False,True,1.0054,-0.2282,1.2809,1.169,13.9938,1.162,True,True,False,reentrenar con los meses recientes (la demanda real cambió)
+aumento_demanda,Desplazamiento de medias: +60 % de demanda en 30 % de estaciones,2,0.2,False,False,True,1.0884,-0.1252,1.5396,1.3115,17.0116,1.258,True,False,False,reentrenar con los meses recientes (la demanda real cambió)
+rezagos_rotos,Variables faltantes: 25 % de filas con los rezagos en 0,2,0.2,False,False,False,0.909,-0.0802,1.314,1.0952,17.0015,1.05,False,False,False,revisar el pipeline de features y la fuente de datos (las entradas cambiaron)
+cierre_estaciones,Drift de concepto: la demanda real cae al 10 % en 15 % de estaciones,0,0.0,False,False,False,0.9027,0.1905,1.2235,1.0293,12.2996,1.043,False,True,False,"drift de concepto: confirmar con el operador (cierres, obras) y reentrenar"

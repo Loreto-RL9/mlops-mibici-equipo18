@@ -1,0 +1,22 @@
+{
+  "aumento_demanda": {
+    "count": 3.0,
+    "share": 0.25
+  },
+  "cierre_estaciones": {
+    "count": 0.0,
+    "share": 0.0
+  },
+  "rezagos_rotos": {
+    "count": 2.0,
+    "share": 0.16666666666666666
+  },
+  "septiembre_real": {
+    "count": 3.0,
+    "share": 0.25
+  },
+  "validacion": {
+    "count": 0.0,
+    "share": 0.0
+  }
+}

@@ -10,6 +10,9 @@ mlflow.db
 mlruns/
 # Log de eventos de la API (una línea JSON por petición)
 logs/
+# Muestras y reportes HTML del monitoreo (se regeneran con make drift / make drift-evidently)
+reports/monitoreo/*.parquet
+reports/monitoreo/*.html
 mlartifacts/
 models/*
 !models/.gitkeep

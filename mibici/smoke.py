@@ -64,9 +64,13 @@ def wait_until_healthy(url: str, seconds: int = 90) -> dict:
 @app.command()
 def golden(n_stations: int = 6, seed: int = config.SEED, out: Path = GOLDEN_PATH):
     """Lote fijo: n estaciones (de alta a baja demanda) x las 20 horas de servicio de un martes
-    de septiembre, más 2 filas que deben caer en fallback (estación desconocida y sin rezagos)."""
-    from mibici.serving import build_features, load_bundle, predict
+    de septiembre, más 3 filas que deben caer en fallback: estación desconocida, sin rezago
+    semanal y estación nueva que el modelo no vio al entrenar (arranque en frío)."""
+    from mibici.dataset import load_stations
+    from mibici.serving import build_features, known_stations, load_bundle, predict
 
+    bundle = load_bundle()
+    assert bundle.model is not None, "falta models/champion: corre make export-model"
     data = pd.read_parquet(config.PROCESSED_DATA_DIR / "model_input.parquet")
     test = data[data["particion"] == "test"]
     day = test[test["hora"].dt.normalize() == "2026-09-15"]
@@ -74,22 +78,19 @@ def golden(n_stations: int = 6, seed: int = config.SEED, out: Path = GOLDEN_PATH
     picks = ranking[np.linspace(0, len(ranking) - 1, n_stations).round().astype(int)]
     rows = day[day["estacion_id"].isin(picks)][["estacion_id", "hora", "lag_24h", "lag_168h"]]
     rows = rows.sort_values(["estacion_id", "hora"]).reset_index(drop=True)
+    new = day[~day["estacion_id"].isin(known_stations(bundle.model))]
+    new = new.sort_values(["salidas", "estacion_id"], ascending=False).iloc[0]
     extra = pd.DataFrame(
         {
-            "estacion_id": [99999, int(picks[0])],
-            "hora": pd.to_datetime(["2026-09-15 08:00", "2026-09-15 09:00"]),
-            "lag_24h": [3.0, 2.0],
-            "lag_168h": [4.0, np.nan],
+            "estacion_id": [99999, int(picks[0]), int(new["estacion_id"])],
+            "hora": pd.to_datetime(["2026-09-15 08:00", "2026-09-15 09:00", new["hora"]]),
+            "lag_24h": [3.0, 2.0, float(new["lag_24h"])],
+            "lag_168h": [4.0, np.nan, float(new["lag_168h"])],
         }
     )
     rows = pd.concat([rows, extra], ignore_index=True).astype(
         {"lag_24h": float, "lag_168h": float}
     )
-
-    from mibici.dataset import load_stations
-
-    bundle = load_bundle()
-    assert bundle.model is not None, "falta models/champion: corre make export-model"
     result = predict(bundle, build_features(rows, load_stations()))
     golden_rows = rows.assign(hora=rows["hora"].dt.strftime("%Y-%m-%dT%H:%M:%S")).join(result)
     payload = {

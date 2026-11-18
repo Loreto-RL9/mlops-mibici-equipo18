@@ -162,3 +162,15 @@ def test_hora_con_zona_se_convierte_a_hora_local(tmp_path, model_dir, stations):
 
 def test_bundle_sin_modelo_no_rompe_la_edad():
     assert ModelBundle(None).age_days() is None
+
+
+def test_arranque_en_frio_estacion_que_el_modelo_no_vio(model_dir, stations, requests_df):
+    """Una estación del catálogo que no estuvo en el entrenamiento recibe la persistencia."""
+    catalog = pd.concat(
+        [stations, stations.head(1).assign(estacion_id=4, municipio="TLQ")], ignore_index=True
+    )
+    df = requests_df.head(2).reset_index(drop=True).assign(estacion_id=[4, 1])
+    out = predict(load_bundle(model_dir), build_features(df, catalog))
+    assert out.loc[0, "motivo"] == "estacion_nueva" and out.loc[0, "fuente"] == "fallback"
+    assert out.loc[0, "salidas_pred"] == df.loc[0, "lag_168h"]
+    assert out.loc[1, "fuente"] == "modelo"

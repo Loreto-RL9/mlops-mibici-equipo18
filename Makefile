@@ -111,6 +111,33 @@ export-model:
 serve:
 	$(RUN) uvicorn mibici.api:app --host 127.0.0.1 --port 8000
 
+# Motor de contenedores: Podman si está instalado; si no, Docker
+ENGINE ?= $(shell command -v podman 2>/dev/null || command -v docker 2>/dev/null)
+IMAGE ?= mibici-api
+# Podman guarda por omisión en formato OCI, que ignora el HEALTHCHECK; con --format docker se conserva
+BUILD_FLAGS = $(if $(findstring podman,$(ENGINE)),--format docker,)
+
+## Generar el golden set (lote fijo de septiembre con los pronósticos del campeón exportado)
+.PHONY: golden
+golden:
+	$(PYTHON_INTERPRETER) -m mibici.smoke golden
+
+## Construir la imagen del servicio (requiere make export-model)
+.PHONY: image
+image:
+	@test -f models/champion/MLmodel || (echo "Falta models/champion: corre make export-model" && exit 1)
+	$(ENGINE) build $(BUILD_FLAGS) -t $(IMAGE) -f Containerfile .
+
+## Correr el contenedor en http://127.0.0.1:8000 (Ctrl+C para detenerlo)
+.PHONY: run-image
+run-image:
+	$(ENGINE) run --rm --name $(IMAGE) -p 8000:8000 $(IMAGE)
+
+## Comparar la API en marcha (make serve o make run-image) contra el golden set
+.PHONY: smoke
+smoke:
+	$(PYTHON_INTERPRETER) -m mibici.smoke check --url http://127.0.0.1:8000
+
 ## Pipeline completo de punta a punta (primero corre las pruebas)
 .PHONY: pipeline
 pipeline: test download data features plots tune predict

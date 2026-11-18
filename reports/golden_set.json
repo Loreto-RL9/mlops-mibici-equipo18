@@ -1,0 +1,1106 @@
+{
+ "modelo": "mibici-demanda-estacion-hora",
+ "version": "3",
+ "run_id": "0c5f641f513e43ca845f5814dade464a",
+ "generado": "2026-11-18T18:50:18+00:00",
+ "filas": [
+  {
+   "estacion_id": 8,
+   "hora": "2026-09-15T00:00:00",
+   "lag_24h": 0.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.1031948755,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 8,
+   "hora": "2026-09-15T05:00:00",
+   "lag_24h": 4.0,
+   "lag_168h": 3.0,
+   "salidas_pred": 1.9943939557,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 8,
+   "hora": "2026-09-15T06:00:00",
+   "lag_24h": 3.0,
+   "lag_168h": 2.0,
+   "salidas_pred": 1.7778030907,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 8,
+   "hora": "2026-09-15T07:00:00",
+   "lag_24h": 2.0,
+   "lag_168h": 3.0,
+   "salidas_pred": 2.3076630166,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 8,
+   "hora": "2026-09-15T08:00:00",
+   "lag_24h": 5.0,
+   "lag_168h": 4.0,
+   "salidas_pred": 3.2917103536,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 8,
+   "hora": "2026-09-15T09:00:00",
+   "lag_24h": 0.0,
+   "lag_168h": 1.0,
+   "salidas_pred": 1.5682213188,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 8,
+   "hora": "2026-09-15T10:00:00",
+   "lag_24h": 3.0,
+   "lag_168h": 1.0,
+   "salidas_pred": 1.530334271,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 8,
+   "hora": "2026-09-15T11:00:00",
+   "lag_24h": 0.0,
+   "lag_168h": 1.0,
+   "salidas_pred": 1.2797889379,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 8,
+   "hora": "2026-09-15T12:00:00",
+   "lag_24h": 1.0,
+   "lag_168h": 2.0,
+   "salidas_pred": 1.4192271673,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 8,
+   "hora": "2026-09-15T13:00:00",
+   "lag_24h": 1.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 1.6221990757,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 8,
+   "hora": "2026-09-15T14:00:00",
+   "lag_24h": 3.0,
+   "lag_168h": 1.0,
+   "salidas_pred": 1.7857194881,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 8,
+   "hora": "2026-09-15T15:00:00",
+   "lag_24h": 2.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 1.6640899049,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 8,
+   "hora": "2026-09-15T16:00:00",
+   "lag_24h": 2.0,
+   "lag_168h": 3.0,
+   "salidas_pred": 1.9628170782,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 8,
+   "hora": "2026-09-15T17:00:00",
+   "lag_24h": 3.0,
+   "lag_168h": 2.0,
+   "salidas_pred": 1.9785290551,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 8,
+   "hora": "2026-09-15T18:00:00",
+   "lag_24h": 2.0,
+   "lag_168h": 3.0,
+   "salidas_pred": 2.4856599832,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 8,
+   "hora": "2026-09-15T19:00:00",
+   "lag_24h": 2.0,
+   "lag_168h": 1.0,
+   "salidas_pred": 1.7411221418,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 8,
+   "hora": "2026-09-15T20:00:00",
+   "lag_24h": 4.0,
+   "lag_168h": 1.0,
+   "salidas_pred": 1.951215999,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 8,
+   "hora": "2026-09-15T21:00:00",
+   "lag_24h": 2.0,
+   "lag_168h": 1.0,
+   "salidas_pred": 1.2695478692,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 8,
+   "hora": "2026-09-15T22:00:00",
+   "lag_24h": 0.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.5524692741,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 8,
+   "hora": "2026-09-15T23:00:00",
+   "lag_24h": 1.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.3473636281,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 51,
+   "hora": "2026-09-15T00:00:00",
+   "lag_24h": 1.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.7409147367,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 51,
+   "hora": "2026-09-15T05:00:00",
+   "lag_24h": 5.0,
+   "lag_168h": 6.0,
+   "salidas_pred": 5.4081413368,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 51,
+   "hora": "2026-09-15T06:00:00",
+   "lag_24h": 8.0,
+   "lag_168h": 8.0,
+   "salidas_pred": 9.6130909774,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 51,
+   "hora": "2026-09-15T07:00:00",
+   "lag_24h": 43.0,
+   "lag_168h": 40.0,
+   "salidas_pred": 43.7482793733,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 51,
+   "hora": "2026-09-15T08:00:00",
+   "lag_24h": 42.0,
+   "lag_168h": 15.0,
+   "salidas_pred": 23.4470442236,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 51,
+   "hora": "2026-09-15T09:00:00",
+   "lag_24h": 29.0,
+   "lag_168h": 3.0,
+   "salidas_pred": 18.3823133852,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 51,
+   "hora": "2026-09-15T10:00:00",
+   "lag_24h": 17.0,
+   "lag_168h": 11.0,
+   "salidas_pred": 12.3308830328,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 51,
+   "hora": "2026-09-15T11:00:00",
+   "lag_24h": 18.0,
+   "lag_168h": 15.0,
+   "salidas_pred": 13.0447209822,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 51,
+   "hora": "2026-09-15T12:00:00",
+   "lag_24h": 10.0,
+   "lag_168h": 9.0,
+   "salidas_pred": 9.3852302025,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 51,
+   "hora": "2026-09-15T13:00:00",
+   "lag_24h": 14.0,
+   "lag_168h": 18.0,
+   "salidas_pred": 13.144836131,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 51,
+   "hora": "2026-09-15T14:00:00",
+   "lag_24h": 18.0,
+   "lag_168h": 21.0,
+   "salidas_pred": 16.5274539168,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 51,
+   "hora": "2026-09-15T15:00:00",
+   "lag_24h": 17.0,
+   "lag_168h": 16.0,
+   "salidas_pred": 14.6793782064,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 51,
+   "hora": "2026-09-15T16:00:00",
+   "lag_24h": 23.0,
+   "lag_168h": 28.0,
+   "salidas_pred": 21.0584708548,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 51,
+   "hora": "2026-09-15T17:00:00",
+   "lag_24h": 36.0,
+   "lag_168h": 17.0,
+   "salidas_pred": 22.4535355337,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 51,
+   "hora": "2026-09-15T18:00:00",
+   "lag_24h": 30.0,
+   "lag_168h": 38.0,
+   "salidas_pred": 29.6700339793,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 51,
+   "hora": "2026-09-15T19:00:00",
+   "lag_24h": 22.0,
+   "lag_168h": 3.0,
+   "salidas_pred": 17.2285917518,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 51,
+   "hora": "2026-09-15T20:00:00",
+   "lag_24h": 22.0,
+   "lag_168h": 5.0,
+   "salidas_pred": 13.5089811238,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 51,
+   "hora": "2026-09-15T21:00:00",
+   "lag_24h": 20.0,
+   "lag_168h": 4.0,
+   "salidas_pred": 12.698516739,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 51,
+   "hora": "2026-09-15T22:00:00",
+   "lag_24h": 16.0,
+   "lag_168h": 3.0,
+   "salidas_pred": 9.0211363084,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 51,
+   "hora": "2026-09-15T23:00:00",
+   "lag_24h": 5.0,
+   "lag_168h": 1.0,
+   "salidas_pred": 2.2917511681,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 55,
+   "hora": "2026-09-15T00:00:00",
+   "lag_24h": 0.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.1160547138,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 55,
+   "hora": "2026-09-15T05:00:00",
+   "lag_24h": 0.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.05209313,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 55,
+   "hora": "2026-09-15T06:00:00",
+   "lag_24h": 2.0,
+   "lag_168h": 1.0,
+   "salidas_pred": 0.7218692036,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 55,
+   "hora": "2026-09-15T07:00:00",
+   "lag_24h": 2.0,
+   "lag_168h": 1.0,
+   "salidas_pred": 1.4058581727,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 55,
+   "hora": "2026-09-15T08:00:00",
+   "lag_24h": 3.0,
+   "lag_168h": 3.0,
+   "salidas_pred": 2.4482041765,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 55,
+   "hora": "2026-09-15T09:00:00",
+   "lag_24h": 8.0,
+   "lag_168h": 1.0,
+   "salidas_pred": 3.1619372054,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 55,
+   "hora": "2026-09-15T10:00:00",
+   "lag_24h": 1.0,
+   "lag_168h": 1.0,
+   "salidas_pred": 1.8609495075,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 55,
+   "hora": "2026-09-15T11:00:00",
+   "lag_24h": 2.0,
+   "lag_168h": 1.0,
+   "salidas_pred": 2.07943163,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 55,
+   "hora": "2026-09-15T12:00:00",
+   "lag_24h": 1.0,
+   "lag_168h": 2.0,
+   "salidas_pred": 2.0240539682,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 55,
+   "hora": "2026-09-15T13:00:00",
+   "lag_24h": 5.0,
+   "lag_168h": 4.0,
+   "salidas_pred": 3.3968749352,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 55,
+   "hora": "2026-09-15T14:00:00",
+   "lag_24h": 2.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 2.6007889991,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 55,
+   "hora": "2026-09-15T15:00:00",
+   "lag_24h": 7.0,
+   "lag_168h": 4.0,
+   "salidas_pred": 4.4419481551,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 55,
+   "hora": "2026-09-15T16:00:00",
+   "lag_24h": 5.0,
+   "lag_168h": 2.0,
+   "salidas_pred": 3.222186838,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 55,
+   "hora": "2026-09-15T17:00:00",
+   "lag_24h": 1.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 2.0392563382,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 55,
+   "hora": "2026-09-15T18:00:00",
+   "lag_24h": 2.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 2.0316735225,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 55,
+   "hora": "2026-09-15T19:00:00",
+   "lag_24h": 1.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 1.5399267035,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 55,
+   "hora": "2026-09-15T20:00:00",
+   "lag_24h": 1.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 1.2911980039,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 55,
+   "hora": "2026-09-15T21:00:00",
+   "lag_24h": 0.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.9418690531,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 55,
+   "hora": "2026-09-15T22:00:00",
+   "lag_24h": 0.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.7066921893,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 55,
+   "hora": "2026-09-15T23:00:00",
+   "lag_24h": 0.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.6034583595,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 77,
+   "hora": "2026-09-15T00:00:00",
+   "lag_24h": 0.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.1849570231,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 77,
+   "hora": "2026-09-15T05:00:00",
+   "lag_24h": 0.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.1732421766,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 77,
+   "hora": "2026-09-15T06:00:00",
+   "lag_24h": 2.0,
+   "lag_168h": 2.0,
+   "salidas_pred": 1.9145732702,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 77,
+   "hora": "2026-09-15T07:00:00",
+   "lag_24h": 7.0,
+   "lag_168h": 6.0,
+   "salidas_pred": 5.5967502587,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 77,
+   "hora": "2026-09-15T08:00:00",
+   "lag_24h": 4.0,
+   "lag_168h": 2.0,
+   "salidas_pred": 3.8456682086,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 77,
+   "hora": "2026-09-15T09:00:00",
+   "lag_24h": 0.0,
+   "lag_168h": 2.0,
+   "salidas_pred": 1.7177946197,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 77,
+   "hora": "2026-09-15T10:00:00",
+   "lag_24h": 3.0,
+   "lag_168h": 3.0,
+   "salidas_pred": 1.7028163408,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 77,
+   "hora": "2026-09-15T11:00:00",
+   "lag_24h": 3.0,
+   "lag_168h": 1.0,
+   "salidas_pred": 1.5321136505,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 77,
+   "hora": "2026-09-15T12:00:00",
+   "lag_24h": 3.0,
+   "lag_168h": 3.0,
+   "salidas_pred": 1.912481627,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 77,
+   "hora": "2026-09-15T13:00:00",
+   "lag_24h": 1.0,
+   "lag_168h": 5.0,
+   "salidas_pred": 2.1649288879,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 77,
+   "hora": "2026-09-15T14:00:00",
+   "lag_24h": 2.0,
+   "lag_168h": 6.0,
+   "salidas_pred": 2.827992439,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 77,
+   "hora": "2026-09-15T15:00:00",
+   "lag_24h": 11.0,
+   "lag_168h": 5.0,
+   "salidas_pred": 5.3324568753,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 77,
+   "hora": "2026-09-15T16:00:00",
+   "lag_24h": 5.0,
+   "lag_168h": 3.0,
+   "salidas_pred": 3.398844296,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 77,
+   "hora": "2026-09-15T17:00:00",
+   "lag_24h": 4.0,
+   "lag_168h": 5.0,
+   "salidas_pred": 4.3580578098,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 77,
+   "hora": "2026-09-15T18:00:00",
+   "lag_24h": 8.0,
+   "lag_168h": 4.0,
+   "salidas_pred": 4.8878631002,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 77,
+   "hora": "2026-09-15T19:00:00",
+   "lag_24h": 1.0,
+   "lag_168h": 2.0,
+   "salidas_pred": 2.5401521265,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 77,
+   "hora": "2026-09-15T20:00:00",
+   "lag_24h": 3.0,
+   "lag_168h": 2.0,
+   "salidas_pred": 2.1353129385,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 77,
+   "hora": "2026-09-15T21:00:00",
+   "lag_24h": 1.0,
+   "lag_168h": 1.0,
+   "salidas_pred": 1.7304899626,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 77,
+   "hora": "2026-09-15T22:00:00",
+   "lag_24h": 1.0,
+   "lag_168h": 1.0,
+   "salidas_pred": 1.1051625908,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 77,
+   "hora": "2026-09-15T23:00:00",
+   "lag_24h": 0.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.5343378918,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 212,
+   "hora": "2026-09-15T00:00:00",
+   "lag_24h": 0.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.0935204784,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 212,
+   "hora": "2026-09-15T05:00:00",
+   "lag_24h": 1.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.3777763496,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 212,
+   "hora": "2026-09-15T06:00:00",
+   "lag_24h": 1.0,
+   "lag_168h": 1.0,
+   "salidas_pred": 0.7953562369,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 212,
+   "hora": "2026-09-15T07:00:00",
+   "lag_24h": 0.0,
+   "lag_168h": 1.0,
+   "salidas_pred": 0.7233790324,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 212,
+   "hora": "2026-09-15T08:00:00",
+   "lag_24h": 1.0,
+   "lag_168h": 1.0,
+   "salidas_pred": 1.0218980684,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 212,
+   "hora": "2026-09-15T09:00:00",
+   "lag_24h": 1.0,
+   "lag_168h": 1.0,
+   "salidas_pred": 0.9061954209,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 212,
+   "hora": "2026-09-15T10:00:00",
+   "lag_24h": 1.0,
+   "lag_168h": 1.0,
+   "salidas_pred": 0.7128625528,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 212,
+   "hora": "2026-09-15T11:00:00",
+   "lag_24h": 0.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.5093436158,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 212,
+   "hora": "2026-09-15T12:00:00",
+   "lag_24h": 0.0,
+   "lag_168h": 2.0,
+   "salidas_pred": 0.6727074227,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 212,
+   "hora": "2026-09-15T13:00:00",
+   "lag_24h": 2.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.7092381683,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 212,
+   "hora": "2026-09-15T14:00:00",
+   "lag_24h": 0.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.6944571678,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 212,
+   "hora": "2026-09-15T15:00:00",
+   "lag_24h": 1.0,
+   "lag_168h": 1.0,
+   "salidas_pred": 1.092645628,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 212,
+   "hora": "2026-09-15T16:00:00",
+   "lag_24h": 5.0,
+   "lag_168h": 3.0,
+   "salidas_pred": 2.2387569267,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 212,
+   "hora": "2026-09-15T17:00:00",
+   "lag_24h": 2.0,
+   "lag_168h": 1.0,
+   "salidas_pred": 1.6274920795,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 212,
+   "hora": "2026-09-15T18:00:00",
+   "lag_24h": 3.0,
+   "lag_168h": 2.0,
+   "salidas_pred": 1.6937665293,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 212,
+   "hora": "2026-09-15T19:00:00",
+   "lag_24h": 1.0,
+   "lag_168h": 1.0,
+   "salidas_pred": 0.9736273109,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 212,
+   "hora": "2026-09-15T20:00:00",
+   "lag_24h": 2.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.7634049336,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 212,
+   "hora": "2026-09-15T21:00:00",
+   "lag_24h": 0.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.5507498565,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 212,
+   "hora": "2026-09-15T22:00:00",
+   "lag_24h": 2.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.5126916823,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 212,
+   "hora": "2026-09-15T23:00:00",
+   "lag_24h": 0.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.1739650289,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 463,
+   "hora": "2026-09-15T00:00:00",
+   "lag_24h": 0.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.0364693151,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 463,
+   "hora": "2026-09-15T05:00:00",
+   "lag_24h": 0.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.0312655742,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 463,
+   "hora": "2026-09-15T06:00:00",
+   "lag_24h": 2.0,
+   "lag_168h": 1.0,
+   "salidas_pred": 0.3115608672,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 463,
+   "hora": "2026-09-15T07:00:00",
+   "lag_24h": 1.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.3544459393,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 463,
+   "hora": "2026-09-15T08:00:00",
+   "lag_24h": 0.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.2203136084,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 463,
+   "hora": "2026-09-15T09:00:00",
+   "lag_24h": 2.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.2817489413,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 463,
+   "hora": "2026-09-15T10:00:00",
+   "lag_24h": 0.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.1757045912,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 463,
+   "hora": "2026-09-15T11:00:00",
+   "lag_24h": 0.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.1704153664,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 463,
+   "hora": "2026-09-15T12:00:00",
+   "lag_24h": 0.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.1922737427,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 463,
+   "hora": "2026-09-15T13:00:00",
+   "lag_24h": 0.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.1902924783,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 463,
+   "hora": "2026-09-15T14:00:00",
+   "lag_24h": 0.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.2054874445,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 463,
+   "hora": "2026-09-15T15:00:00",
+   "lag_24h": 0.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.2189764349,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 463,
+   "hora": "2026-09-15T16:00:00",
+   "lag_24h": 0.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.2127281725,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 463,
+   "hora": "2026-09-15T17:00:00",
+   "lag_24h": 0.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.2666617455,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 463,
+   "hora": "2026-09-15T18:00:00",
+   "lag_24h": 1.0,
+   "lag_168h": 2.0,
+   "salidas_pred": 0.6413318869,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 463,
+   "hora": "2026-09-15T19:00:00",
+   "lag_24h": 0.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.2241830888,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 463,
+   "hora": "2026-09-15T20:00:00",
+   "lag_24h": 1.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.2734926125,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 463,
+   "hora": "2026-09-15T21:00:00",
+   "lag_24h": 0.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.2199865793,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 463,
+   "hora": "2026-09-15T22:00:00",
+   "lag_24h": 0.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.242481399,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 463,
+   "hora": "2026-09-15T23:00:00",
+   "lag_24h": 0.0,
+   "lag_168h": 0.0,
+   "salidas_pred": 0.1491475397,
+   "fuente": "modelo",
+   "motivo": null
+  },
+  {
+   "estacion_id": 99999,
+   "hora": "2026-09-15T08:00:00",
+   "lag_24h": 3.0,
+   "lag_168h": 4.0,
+   "salidas_pred": 4.0,
+   "fuente": "fallback",
+   "motivo": "estacion_desconocida"
+  },
+  {
+   "estacion_id": 51,
+   "hora": "2026-09-15T09:00:00",
+   "lag_24h": 2.0,
+   "lag_168h": null,
+   "salidas_pred": 2.0,
+   "fuente": "fallback",
+   "motivo": "sin_rezagos"
+  }
+ ]
+}

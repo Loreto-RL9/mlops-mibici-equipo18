@@ -36,7 +36,7 @@ jobs:
       - name: Construir la imagen con Podman
         run: |
           podman --version
-          podman build --format docker -t mibici-api -f Containerfile .
+          podman build --format docker -t mibici-api -f Dockerfile .
           podman image ls mibici-api
 
       - name: Levantar el contenedor

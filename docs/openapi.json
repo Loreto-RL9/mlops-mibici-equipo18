@@ -1,0 +1,299 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "MiBici · demanda por estación y hora",
+    "description": "Pronóstico de salidas por estación para el día siguiente (Equipo 18).",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Health Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/modelo": {
+      "get": {
+        "summary": "Modelo",
+        "operationId": "modelo_modelo_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Modelo Modelo Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/predict": {
+      "post": {
+        "summary": "Predict",
+        "operationId": "predict_predict_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Peticion"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Respuesta"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Fila": {
+        "properties": {
+          "estacion_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Estacion Id",
+            "description": "id del catálogo de estaciones de MiBici"
+          },
+          "hora": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Hora",
+            "description": "inicio de la hora a pronosticar (hora local)"
+          },
+          "lag_24h": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lag 24H",
+            "description": "salidas a la misma hora, un día antes"
+          },
+          "lag_168h": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lag 168H",
+            "description": "salidas a la misma hora, 7 días antes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "estacion_id",
+          "hora"
+        ],
+        "title": "Fila",
+        "description": "Una estación en una hora. Los rezagos son las salidas observadas de la misma hora ayer y\nhace una semana: los conoce el operador la noche anterior.",
+        "example": {
+          "estacion_id": 2,
+          "hora": "2026-09-15T08:00:00",
+          "lag_168h": 4,
+          "lag_24h": 3
+        }
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "Peticion": {
+        "properties": {
+          "filas": {
+            "items": {
+              "$ref": "#/components/schemas/Fila"
+            },
+            "type": "array",
+            "maxItems": 1000,
+            "minItems": 1,
+            "title": "Filas"
+          }
+        },
+        "type": "object",
+        "required": [
+          "filas"
+        ],
+        "title": "Peticion"
+      },
+      "Pronostico": {
+        "properties": {
+          "estacion_id": {
+            "type": "integer",
+            "title": "Estacion Id"
+          },
+          "hora": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Hora"
+          },
+          "salidas_pred": {
+            "type": "number",
+            "title": "Salidas Pred",
+            "description": "salidas esperadas en esa hora"
+          },
+          "fuente": {
+            "type": "string",
+            "title": "Fuente",
+            "description": "\"modelo\" o \"fallback\" (persistencia semanal)"
+          },
+          "motivo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Motivo",
+            "description": "por qué se usó el fallback"
+          }
+        },
+        "type": "object",
+        "required": [
+          "estacion_id",
+          "hora",
+          "salidas_pred",
+          "fuente"
+        ],
+        "title": "Pronostico"
+      },
+      "Respuesta": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "title": "Request Id"
+          },
+          "modelo": {
+            "type": "string",
+            "title": "Modelo"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          },
+          "pronosticos": {
+            "items": {
+              "$ref": "#/components/schemas/Pronostico"
+            },
+            "type": "array",
+            "title": "Pronosticos"
+          }
+        },
+        "type": "object",
+        "required": [
+          "request_id",
+          "modelo",
+          "version",
+          "pronosticos"
+        ],
+        "title": "Respuesta"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

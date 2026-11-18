@@ -98,7 +98,7 @@ def create_app(
     app = FastAPI(
         title="MiBici · demanda por estación y hora",
         description="Pronóstico de salidas por estación para el día siguiente (Equipo 18).",
-        version="1.0.0",
+        version=config.API_VERSION,
         lifespan=lifespan,
     )
 

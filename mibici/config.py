@@ -92,6 +92,16 @@ MLFLOW_EXPERIMENT_MODELOS = "mibici-fase2-modelos"
 REGISTERED_MODEL = "mibici-demanda-estacion-hora"  # nombre en el Model Registry
 MODEL_ALIAS = "champion"
 
+# Servicio (API) ---------------------------------------------------------------
+# El contenedor sirve una copia del modelo exportada del registro (make export-model), así que no
+# necesita la base de MLflow. Las rutas se pueden cambiar con variables de entorno.
+SERVING_MODEL_DIR = Path(os.getenv("MIBICI_MODEL_DIR", MODELS_DIR / "champion"))
+PREDICTION_LOG = Path(
+    os.getenv("MIBICI_PREDICTION_LOG", PROJ_ROOT / "logs" / "predicciones.jsonl")
+)
+API_MAX_BATCH = 1000  # filas estación-hora por petición
+MODEL_MAX_AGE_DAYS = 8  # reentrenamiento semanal + 1 día de margen: después, /health lo avisa
+
 # loguru compatible con barras de progreso de tqdm
 try:
     from tqdm import tqdm

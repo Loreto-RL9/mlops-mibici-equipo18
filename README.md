@@ -138,6 +138,32 @@ model.predict(df[model.feature_names_in_])   # df con las columnas de v4
 `python -m mibici.modeling.train --modelo hgb_poisson` reentrena una familia con los mejores hiperparámetros de la
 última búsqueda (leídos de MLflow) y registra una versión nueva; el alias se recalcula.
 
+## Servicio de pronóstico (API)
+
+```bash
+make export-model   # copia @champion del Model Registry a models/champion (+ model_meta.json)
+make serve          # FastAPI en http://127.0.0.1:8000 (documentación interactiva en /docs)
+```
+
+| Endpoint | Qué hace |
+|---|---|
+| `GET /health` | Estado (`ok` o `degradado`), versión servida, edad del modelo y alertas |
+| `GET /modelo` | Metadatos de la versión: hiperparámetros, métricas y de qué run salió |
+| `POST /predict` | Hasta 1,000 filas estación-hora; cada pronóstico vuelve con su llave y su `fuente` |
+
+```json
+POST /predict
+{"filas": [{"estacion_id": 2, "hora": "2026-09-15T08:00:00", "lag_24h": 3, "lag_168h": 4}]}
+```
+
+- **Mismas transformaciones que en entrenamiento:** el calendario sale de `features.calendar_features` y la estación
+  del catálogo versionado; el resto viaja dentro del Pipeline. Una prueba lo verifica y, con el campeón real, la API
+  devuelve exactamente lo mismo que `make predict` (diferencia máxima 0.0 en 500 filas de septiembre).
+- **Modo degradado:** si el modelo no carga, la estación no existe o faltan rezagos, responde con la persistencia
+  semanal (la línea base) y lo marca con `fuente: "fallback"` y el `motivo`.
+- **Log de eventos:** cada petición deja una línea JSON en `logs/predicciones.jsonl` (versión, entradas, salidas,
+  latencia); es la entrada del monitoreo de drift.
+
 ## Estructura del proyecto
 
 ```
@@ -148,17 +174,20 @@ model.predict(df[model.feature_names_in_])   # df con las columnas de v4
 ├── notebooks/           <- Solo exploración; importan el paquete mibici
 ├── references/          <- ML Canvas, diccionario de datos y verificación de reproducibilidad
 ├── reports/             <- Hallazgos del EDA, selección de modelos, tabla comparativa y figuras
-├── tests/               <- test_data, test_pipeline, test_tune y test_registry (datos sintéticos, conftest.py)
+├── tests/               <- test_data, test_pipeline, test_tune, test_registry y test_api (datos sintéticos)
 └── mibici/              <- Código fuente
     ├── config.py        <- Rutas, fuente, umbrales de limpieza, partición, semilla, horizonte, MLflow
     ├── dataset.py       <- Descarga, lectura, TripCleaner y validación (v0, v1)
     ├── features.py      <- Panel de demanda, calendario, festivos, rezagos y partición (v2, v4)
     ├── tracking.py      <- log_dataset_version(): versionado de datasets en MLflow
     ├── plots.py         <- Figuras del EDA y del pronóstico
+    ├── serving.py       <- Variables de servicio, pronóstico con fallback y log de eventos
+    ├── api.py           <- API FastAPI: /health, /modelo y /predict
     └── modeling/
         ├── pipeline.py  <- Pipeline de scikit-learn y StationProfilePCA
         ├── train.py     <- Familias, métricas, reentrenamiento y registro en el Model Registry
         ├── tune.py      <- Búsqueda de hiperparámetros con Optuna
+        ├── export.py    <- Copia del modelo del registro que sirve la API
         └── predict.py   <- Pronósticos con el modelo @champion
 ```
 

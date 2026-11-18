@@ -101,6 +101,16 @@ tune:
 predict:
 	$(PYTHON_INTERPRETER) -m mibici.modeling.predict
 
+## Exportar el modelo @champion del Model Registry a models/champion (lo que sirve la API)
+.PHONY: export-model
+export-model:
+	$(PYTHON_INTERPRETER) -m mibici.modeling.export
+
+## Levantar la API en local: http://127.0.0.1:8000/docs (requiere make export-model)
+.PHONY: serve
+serve:
+	$(RUN) uvicorn mibici.api:app --host 127.0.0.1 --port 8000
+
 ## Pipeline completo de punta a punta (primero corre las pruebas)
 .PHONY: pipeline
 pipeline: test download data features plots tune predict

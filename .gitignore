@@ -8,6 +8,8 @@
 # MLflow (base de datos local y artefactos) y modelos generados
 mlflow.db
 mlruns/
+# Log de eventos de la API (una línea JSON por petición)
+logs/
 mlartifacts/
 models/*
 !models/.gitkeep

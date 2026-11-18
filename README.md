@@ -164,11 +164,25 @@ POST /predict
 - **Log de eventos:** cada petición deja una línea JSON en `logs/predicciones.jsonl` (versión, entradas, salidas,
   latencia); es la entrada del monitoreo de drift.
 
+## Contenedor (Podman o Docker) y portabilidad
+
+```bash
+make export-model && make image   # imagen mibici-api: dos etapas, dependencias de uv.lock, usuario sin root
+make run-image                    # http://127.0.0.1:8000, con HEALTHCHECK sobre /health
+make smoke                        # compara la API contra el golden set (reports/golden_set.json)
+```
+
+La imagen lleva sólo el entorno, el paquete `mibici`, el catálogo de estaciones y `models/champion`; no necesita
+`mlflow.db` ni los datos. El workflow `contenedor.yml` la construye con Podman en cada push y prueba `/health`,
+`/predict` y que corra como el usuario 10001. La portabilidad entre sistemas operativos se demuestra con el
+golden set: [`references/portabilidad.md`](references/portabilidad.md).
+
 ## Estructura del proyecto
 
 ```
 ├── Makefile             <- requirements, test, lint, download, data, features, plots, tune, predict, pipeline
-├── .github/workflows/   <- CI: ruff y pytest en cada push y pull request
+├── Containerfile        <- Imagen del servicio (Podman o Docker), dos etapas y usuario sin root
+├── .github/workflows/   <- CI (ruff y pytest) y Contenedor (imagen + prueba de humo)
 ├── data/                <- raw, interim y processed con DVC; catálogo external en Git
 ├── docs/                <- Documentación generada de Cookiecutter
 ├── notebooks/           <- Solo exploración; importan el paquete mibici
@@ -183,6 +197,7 @@ POST /predict
     ├── plots.py         <- Figuras del EDA y del pronóstico
     ├── serving.py       <- Variables de servicio, pronóstico con fallback y log de eventos
     ├── api.py           <- API FastAPI: /health, /modelo y /predict
+    ├── smoke.py         <- Golden set y pruebas de humo del servicio
     └── modeling/
         ├── pipeline.py  <- Pipeline de scikit-learn y StationProfilePCA
         ├── train.py     <- Familias, métricas, reentrenamiento y registro en el Model Registry

@@ -2,10 +2,11 @@
 
 **Pregunta:** ¿el servicio da los mismos pronósticos en cualquier máquina y sistema operativo?
 
-**Cómo se prueba:** el *golden set* (`reports/golden_set.json`) es un lote fijo de 122 filas estación-hora del
+**Cómo se prueba:** el *golden set* (`reports/golden_set.json`) es un lote fijo de 123 filas estación-hora del
 martes 15 de septiembre de 2026:
 - 6 estaciones, de la de mayor a la de menor demanda, en sus 20 horas de servicio;
-- 2 filas que deben caer en *fallback*: una estación desconocida y una fila sin rezago semanal.
+- 3 filas que deben caer en *fallback*: una estación desconocida, una fila sin rezago semanal y una estación nueva que
+  el modelo no vio al entrenar.
 
 Guarda los pronósticos que dio el campeón al exportarse. `make smoke` manda ese lote a la API en marcha y falla si algún
 número cambia más de 1e-6 o si cambia la fuente (`modelo` o `fallback`).
@@ -29,7 +30,7 @@ make smoke
 
 | Fecha | Quién (rol) | Sistema operativo | Motor | Imagen | `make smoke` |
 |---|---|---|---|---|---|
-| 18-nov-2026 | Alonso (Data Engineer) | Linux (Ubuntu, Python 3.12) | entorno de la imagen sin dependencias de desarrollo, usuario sin root, 2 workers | — | ✅ 122 filas, diferencia máx. 5e-11 |
+| 18-nov-2026 | Alonso (Data Engineer) | Linux (Ubuntu, Python 3.12) | entorno de la imagen sin dependencias de desarrollo, usuario sin root, 2 workers | — | ✅ 123 filas, diferencia máx. 5e-11 |
 | — | CI de GitHub (`contenedor.yml`) | ubuntu-latest | Podman | `mibici-api` con modelo sintético | ✅ `/health` y `/predict`, usuario 10001 |
 | *pendiente* | César (DevOps / SRE) | Windows | Podman Desktop | `mibici-api` | |
 | *pendiente* | José Luis (ML Engineer) | Windows o macOS | Podman | `mibici-api` | |

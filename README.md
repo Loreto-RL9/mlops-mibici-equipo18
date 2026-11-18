@@ -177,6 +177,24 @@ La imagen lleva sólo el entorno, el paquete `mibici`, el catálogo de estacione
 `/predict` y que corra como el usuario 10001. La portabilidad entre sistemas operativos se demuestra con el
 golden set: [`references/portabilidad.md`](references/portabilidad.md).
 
+## Monitoreo: data drift y pérdida de desempeño
+
+```bash
+make drift            # línea base (validación jul–ago) vs septiembre real y 3 escenarios sintéticos -> MLflow
+make drift-evidently  # los mismos cortes con el DataDriftPreset de Evidently (reportes HTML)
+make drift-log        # drift de las peticiones reales que guardó la API
+```
+
+| Escenario | Entradas con drift | MAE vs línea base | Alerta | Acción |
+|---|---:|---:|---|---|
+| Septiembre real (estacional, 58 estaciones nuevas) | 2 | 1.16× | desempeño y sesgo | reentrenar con los meses recientes |
+| +60 % de demanda en 30 % de las estaciones | 2 | 1.26× | desempeño | reentrenar |
+| 25 % de filas con rezagos en 0 | 2 | 1.05× | — | revisar el pipeline de features |
+| Cierre de estaciones (drift de concepto) | 0 | 1.04× | sesgo | confirmar con el operador y reentrenar |
+
+Umbrales, método (Wasserstein y Jensen-Shannon, la regla de Evidently) y la política de arranque en frío para las
+estaciones nuevas: [`references/monitoreo.md`](references/monitoreo.md).
+
 ## Estructura del proyecto
 
 ```
@@ -198,6 +216,7 @@ golden set: [`references/portabilidad.md`](references/portabilidad.md).
     ├── serving.py       <- Variables de servicio, pronóstico con fallback y log de eventos
     ├── api.py           <- API FastAPI: /health, /modelo y /predict
     ├── smoke.py         <- Golden set y pruebas de humo del servicio
+    ├── monitoring.py    <- Drift, escenarios sintéticos, error mensual, alertas y acciones
     └── modeling/
         ├── pipeline.py  <- Pipeline de scikit-learn y StationProfilePCA
         ├── train.py     <- Familias, métricas, reentrenamiento y registro en el Model Registry

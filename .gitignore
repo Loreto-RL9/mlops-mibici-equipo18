@@ -1,14 +1,23 @@
 # Data (solo se versiona el catálogo de estaciones, que el portal ya no publica)
-/data/*
-!/data/external/
+/data/raw/
+/data/interim/
+/data/processed/
 /data/external/*
 !/data/external/nomenclatura_2026_09.csv
 
 # MLflow (base de datos local y artefactos) y modelos generados
 mlflow.db
 mlruns/
+# Log de eventos de la API (una línea JSON por petición)
+logs/
+# Muestras y reportes HTML del monitoreo (se regeneran con make drift / make drift-evidently)
+reports/monitoreo/*.parquet
+reports/monitoreo/*.html
 mlartifacts/
 models/*
+# El campeón exportado sí se versiona: es el artefacto que sirve la imagen (make export-model)
+!models/champion/
+models/champion/**/__pycache__/
 !models/.gitkeep
 
 # Mac OS-specific storage files

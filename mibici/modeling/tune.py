@@ -56,22 +56,21 @@ app = typer.Typer()
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 warnings.filterwarnings("ignore", category=optuna.exceptions.ExperimentalWarning)
 
-# Rango en el que Optuna busca los hiperparámetros de cada familia (MODELS vive en train.py)
+
+# Los rangos viven en config.py. Esta capa solo traduce la especificación declarativa a Optuna.
+def suggest_params(trial: optuna.Trial, name: str) -> dict:
+    params = {}
+    for parameter, specification in config.OPTUNA_SEARCH_SPACES[name].items():
+        options = specification.copy()
+        suggestion_type = options.pop("type")
+        suggest = getattr(trial, f"suggest_{suggestion_type}")
+        params[parameter] = suggest(parameter, **options)
+    return params
+
+
 SPACES = {
-    "poisson_glm": lambda t: {"alpha": t.suggest_float("alpha", 1e-6, 1.0, log=True)},
-    "random_forest": lambda t: {
-        "n_estimators": t.suggest_int("n_estimators", 50, 250, step=25),
-        "max_depth": t.suggest_int("max_depth", 8, 22),
-        "min_samples_leaf": t.suggest_int("min_samples_leaf", 30, 1000, log=True),
-        "max_features": t.suggest_float("max_features", 0.3, 0.8),
-    },
-    "hgb_poisson": lambda t: {
-        "learning_rate": t.suggest_float("learning_rate", 0.02, 0.3, log=True),
-        "max_iter": t.suggest_int("max_iter", 200, 1500, step=100),
-        "max_leaf_nodes": t.suggest_int("max_leaf_nodes", 15, 255, log=True),
-        "min_samples_leaf": t.suggest_int("min_samples_leaf", 20, 500, log=True),
-        "l2_regularization": t.suggest_float("l2_regularization", 1e-3, 10.0, log=True),
-    },
+    name: (lambda trial, model_name=name: suggest_params(trial, model_name))
+    for name in config.OPTUNA_SEARCH_SPACES
 }
 ALL_MODELS = list(MODELS)
 

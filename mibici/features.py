@@ -40,18 +40,29 @@ def build_demand_panel(trips: pd.DataFrame) -> pd.DataFrame:
     return panel.loc[active, ["estacion_id", "hora", "salidas"]].reset_index(drop=True)
 
 
+STATION_COLUMNS = ["estacion_id", "capacidad", "lat", "lon", "municipio"]
+
+
+def calendar_features(hora: pd.Series) -> pd.DataFrame:
+    """Hora del día, día de la semana, fin de semana y festivo. La usan el panel de entrenamiento
+    y la API (mibici/serving.py): una sola función evita diferencias entre entrenar y servir."""
+    mx_holidays = pd.to_datetime(list(holidays.Mexico(years=hora.dt.year.unique().tolist())))
+    return pd.DataFrame(
+        {
+            "hora_dia": hora.dt.hour,
+            "dia_semana": hora.dt.day_of_week,
+            "fin_de_semana": (hora.dt.day_of_week >= 5).astype(int),
+            "festivo": hora.dt.normalize().isin(mx_holidays).astype(int),
+        },
+        index=hora.index,
+    )
+
+
 def add_features(panel: pd.DataFrame, stations: pd.DataFrame) -> pd.DataFrame:
     """Calendario, festivos, datos de la estación y rezagos de la demanda."""
-    cols = ["estacion_id", "capacidad", "lat", "lon", "municipio"]
-    df = panel.merge(stations[cols], on="estacion_id", how="left")
+    df = panel.merge(stations[STATION_COLUMNS], on="estacion_id", how="left")
     df = df.sort_values(["estacion_id", "hora"]).reset_index(drop=True)
-
-    h = df["hora"]
-    df["hora_dia"] = h.dt.hour
-    df["dia_semana"] = h.dt.day_of_week
-    df["fin_de_semana"] = (df["dia_semana"] >= 5).astype(int)
-    mx_holidays = pd.to_datetime(list(holidays.Mexico(years=h.dt.year.unique().tolist())))
-    df["festivo"] = h.dt.normalize().isin(mx_holidays).astype(int)
+    df = df.join(calendar_features(df["hora"]))
 
     # Rezagos por estación (el panel es continuo hora a hora dentro de cada estación)
     by_station = df.groupby("estacion_id")["salidas"]

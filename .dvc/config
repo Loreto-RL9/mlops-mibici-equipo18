@@ -1,0 +1,6 @@
+[core]
+    remote = storage
+[cache]
+    type = "hardlink,copy"
+['remote "storage"']
+    url = C:\mlops\files

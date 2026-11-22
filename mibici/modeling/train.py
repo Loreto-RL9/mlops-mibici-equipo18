@@ -36,12 +36,12 @@ app = typer.Typer()
 # Familias de algoritmos (justificación en tune.py y reports/modelos_fase2.md). Cada una recibe
 # sus hiperparámetros y devuelve el estimador que va al final del Pipeline.
 MODELS = {
-    "poisson_glm": lambda p: PoissonRegressor(max_iter=1000, **p),
+    "poisson_glm": lambda p: PoissonRegressor(**(config.MODEL_DEFAULTS["poisson_glm"] | p)),
     "random_forest": lambda p: RandomForestRegressor(
-        max_samples=0.2, n_jobs=-1, random_state=config.SEED, **p
+        **(config.MODEL_DEFAULTS["random_forest"] | p)
     ),
     "hgb_poisson": lambda p: HistGradientBoostingRegressor(
-        loss="poisson", early_stopping=False, random_state=config.SEED, **p
+        **(config.MODEL_DEFAULTS["hgb_poisson"] | p)
     ),
 }
 PARTITIONS = ("valid", "test")
@@ -137,7 +137,7 @@ def set_champion(horizon: str = config.HORIZON) -> str:
     versions = [v for v in client.search_model_versions(f"name='{config.REGISTERED_MODEL}'")
                 if v.tags.get("horizonte") == horizon]  # fmt: skip
     best = min(versions, key=lambda v: float(v.tags["devianza_poisson_valid"]))
-    client.set_registered_model_alias(config.REGISTERED_MODEL, "champion", best.version)
+    client.set_registered_model_alias(config.REGISTERED_MODEL, config.MODEL_ALIAS, best.version)
     return f"{best.tags['modelo']} (versión {best.version})"
 
 

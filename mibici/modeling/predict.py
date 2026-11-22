@@ -18,7 +18,7 @@ from mibici.modeling.train import evaluate
 app = typer.Typer()
 
 
-def load_model(alias: str = "champion"):
+def load_model(alias: str = config.MODEL_ALIAS):
     """Carga el Pipeline completo (preprocesamiento + modelo) desde el Model Registry."""
     mlflow.set_tracking_uri(config.MLFLOW_TRACKING_URI)
     return mlflow.sklearn.load_model(f"models:/{config.REGISTERED_MODEL}@{alias}")
@@ -34,7 +34,7 @@ def main(
     input_path: Path = config.PROCESSED_DATA_DIR / "model_input.parquet",
     output_path: Path = config.PROCESSED_DATA_DIR / "predicciones.parquet",
     particion: str = "test",
-    alias: str = "champion",
+    alias: str = config.MODEL_ALIAS,
 ):
     df = pd.read_parquet(input_path)
     df = df[df["particion"] == particion].reset_index(drop=True)

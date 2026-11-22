@@ -1,0 +1,56 @@
+# Contenedor: en cada push y pull request se construye la imagen con Podman (como en la guía del
+# curso), se levanta y se prueba que /health responda y que /predict use el modelo, corriendo como
+# usuario sin root. El runner no tiene los datos ni el Model Registry, así que la imagen lleva un
+# modelo sintético; la portabilidad con el campeón real se prueba con `make smoke` (golden set).
+name: Contenedor
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: contenedor-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  imagen-y-prueba-de-humo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Obtener el código
+        uses: actions/checkout@v4
+
+      - name: Instalar uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Instalar dependencias desde uv.lock
+        run: uv sync --frozen --python 3.12
+
+      - name: Modelo sintético en models/champion (sólo para el CI)
+        run: uv run --frozen python -m mibici.smoke modelo-sintetico
+
+      - name: Construir la imagen con Podman
+        run: |
+          podman --version
+          podman build --format docker -t mibici-api -f Dockerfile .
+          podman image ls mibici-api
+
+      - name: Levantar el contenedor
+        run: podman run -d --name mibici-api -p 8000:8000 mibici-api
+
+      - name: Prueba de humo (/health y /predict)
+        run: uv run --frozen python -m mibici.smoke basico --url http://127.0.0.1:8000
+
+      - name: El servicio corre sin root
+        run: test "$(podman exec mibici-api id -u)" = "10001"
+
+      - name: Log de eventos dentro del contenedor
+        run: podman exec mibici-api tail -c 400 /app/logs/predicciones.jsonl
+
+      - name: Logs del contenedor (si algo falló)
+        if: failure()
+        run: podman logs mibici-api

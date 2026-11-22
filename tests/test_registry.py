@@ -53,6 +53,6 @@ def test_champion_is_the_lowest_validation_deviance_and_predicts_like_the_traine
     )[:2]
 
     assert set_champion("24h").startswith(best_name)
-    champion = load_model("champion")
+    champion = load_model(config.MODEL_ALIAS)
     # El Pipeline cargado del Registry trae su preprocesamiento: recibe las columnas crudas
     assert np.allclose(predict(champion, parts["test"]), predict(best_model, parts["test"]))

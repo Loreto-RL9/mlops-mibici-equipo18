@@ -15,6 +15,9 @@ reports/monitoreo/*.parquet
 reports/monitoreo/*.html
 mlartifacts/
 models/*
+# El campeón exportado sí se versiona: es el artefacto que sirve la imagen (make export-model)
+!models/champion/
+models/champion/**/__pycache__/
 !models/.gitkeep
 
 # Mac OS-specific storage files

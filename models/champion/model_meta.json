@@ -1,0 +1,30 @@
+{
+  "nombre": "mibici-demanda-estacion-hora",
+  "alias": "champion",
+  "version": "3",
+  "run_id": "0c5f641f513e43ca845f5814dade464a",
+  "registrado": "2026-11-18T18:02:28+00:00",
+  "exportado": "2026-11-18T18:45:36+00:00",
+  "datos_entrenamiento_hasta": "2026-06-30 23:00",
+  "horizonte": "24h",
+  "etiquetas": {
+    "modelo": "hgb_poisson",
+    "horizonte": "24h",
+    "dataset": "demanda-v4",
+    "param_learning_rate": "0.03226749855129976",
+    "param_max_iter": "600",
+    "param_max_leaf_nodes": "179",
+    "param_min_samples_leaf": "155",
+    "param_l2_regularization": "1.1869858782162463",
+    "mae_valid": "0.8654",
+    "rmse_valid": "1.3739",
+    "devianza_poisson_valid": "1.0989",
+    "sesgo_valid": "0.0571",
+    "mae_top_estaciones_valid": "1.5755",
+    "mae_test": "1.0054",
+    "rmse_test": "1.7117",
+    "devianza_poisson_test": "1.2809",
+    "sesgo_test": "-0.2282",
+    "mae_top_estaciones_test": "1.896"
+  }
+}

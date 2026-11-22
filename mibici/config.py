@@ -93,6 +93,7 @@ REGISTERED_MODEL = "mibici-demanda-estacion-hora"  # nombre en el Model Registry
 MODEL_ALIAS = "champion"
 
 # Servicio (API) ---------------------------------------------------------------
+API_VERSION = "1.0.0"  # versión del contrato de la API (va en los tags de la imagen)
 # El contenedor sirve una copia del modelo exportada del registro (make export-model), así que no
 # necesita la base de MLflow. Las rutas se pueden cambiar con variables de entorno.
 SERVING_MODEL_DIR = Path(os.getenv("MIBICI_MODEL_DIR", MODELS_DIR / "champion"))
@@ -101,6 +102,15 @@ PREDICTION_LOG = Path(
 )
 API_MAX_BATCH = 1000  # filas estación-hora por petición
 MODEL_MAX_AGE_DAYS = 8  # reentrenamiento semanal + 1 día de margen: después, /health lo avisa
+# Arranque en frío: una estación que el modelo no vio al entrenar recibe el perfil promedio y se
+# sobreestima (sep 2026: MAE 0.743 del modelo vs 0.562 de la persistencia en las 58 estaciones
+# nuevas). Mientras no se reentrene, la API responde con la persistencia semanal para esas estaciones.
+COLD_START_FALLBACK = True
+
+# Monitoreo: alertas de desempeño contra lo medido en validación (consecuencias pre-negociadas en
+# references/monitoreo.md)
+MONITOR_MAE_RATIO = 1.15  # alerta si el MAE supera en más de 15 % al de validación
+MONITOR_MAX_ABS_BIAS = 0.15  # alerta si el sesgo medio pasa de ±0.15 salidas (~10 % de la media)
 
 # loguru compatible con barras de progreso de tqdm
 try:

@@ -8,7 +8,8 @@ por separado. Tres decisiones de diseño:
    (data/external); el resto del preprocesamiento viaja dentro del Pipeline.
 2. **Modo degradado en vez de error.** Si el modelo no cargó, la estación no está en el catálogo
    o faltan los rezagos, se responde con la persistencia semanal (la demanda de la misma hora hace
-   una semana), que es la línea base del proyecto, y la respuesta lo dice (`fuente`).
+   una semana), que es la línea base del proyecto, y la respuesta lo dice (`fuente`). Lo mismo con
+   una estación que el modelo no vio al entrenar (arranque en frío, `config.COLD_START_FALLBACK`).
 3. **Un evento por petición.** Cada pronóstico deja una línea JSON con la versión del modelo,
    entradas, salidas y latencia: es la materia prima del monitoreo de drift.
 """
@@ -73,6 +74,15 @@ def build_features(requests: pd.DataFrame, stations: pd.DataFrame) -> pd.DataFra
     return df.join(calendar_features(df["hora"]))
 
 
+def known_stations(model) -> set | None:
+    """Estaciones que el modelo vio al entrenar (las del perfil de StationProfilePCA)."""
+    try:
+        profile = model.named_steps["preprocesamiento"].named_transformers_["perfil_estacion"]
+        return set(profile.codes_.index)
+    except (AttributeError, KeyError):
+        return None
+
+
 def fallback_values(df: pd.DataFrame) -> pd.Series:
     """Persistencia semanal; si no hay, la de ayer; si tampoco, 0 salidas."""
     return df["lag_168h"].fillna(df["lag_24h"]).fillna(0.0).astype(float)
@@ -93,6 +103,12 @@ def predict(bundle: ModelBundle, df: pd.DataFrame) -> pd.DataFrame:
     if bundle.model is None:
         out.loc[usable, "motivo"] = "modelo_no_disponible"
         return out
+    if config.COLD_START_FALLBACK:
+        seen = known_stations(bundle.model)
+        if seen is not None:
+            new_station = usable & ~df["estacion_id"].isin(seen)
+            out.loc[new_station, "motivo"] = "estacion_nueva"
+            usable &= ~new_station
     if usable.any():
         try:
             columns = list(bundle.model.feature_names_in_)

@@ -1,0 +1,22 @@
+# Contexto de construcción de la imagen (Podman y Docker leen este archivo).
+# Sólo entran pyproject.toml, uv.lock, el paquete mibici, el catálogo y models/champion.
+.git
+.github
+.venv
+.dvc
+**/__pycache__
+*.py[cod]
+mlflow.db
+mlruns
+mlartifacts
+logs
+notebooks
+references
+reports
+tests
+docs
+data/raw
+data/interim
+data/processed
+models/*
+!models/champion

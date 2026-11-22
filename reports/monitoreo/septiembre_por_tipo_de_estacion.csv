@@ -1,0 +1,4 @@
+estacion_nueva,estaciones,filas,demanda_media,mae_modelo,sesgo,mae_persistencia,mae_politica
+False,410,245292,1.8293,1.042,-0.3148,1.2537,1.042
+True,58,34205,0.5364,0.7431,0.3923,0.5616,0.5616
+total,468,279497,1.6711,1.0054,-0.2282,1.169,0.9832

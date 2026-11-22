@@ -182,8 +182,13 @@ make smoke                                 # compara la API contra el golden set
 make publish DOCKERHUB_USER=<usuario>      # Docker Hub, amd64 + arm64 (antes: docker login)
 ```
 
-**Tags versionados en Docker Hub** (`docker.io/<usuario>/mibici-api`). `make publish` construye la imagen para
-`linux/amd64` y `linux/arm64`, así corre igual en una PC Intel/AMD, en Windows y en una Mac con Apple Silicon:
+**Imagen publicada:** [`docker.io/cesarxyz/mibici-api`](https://hub.docker.com/r/cesarxyz/mibici-api)
+(`docker pull cesarxyz/mibici-api:1.0.0`). Hoy trae los tags `1.0.0-331c828`, `1.0.0` y `latest` (amd64), con el campeón
+que se reentrenó en el servidor de César. Ese campeón es provisional: la imagen se reconstruye con `models/champion`
+(run `0c5f641`, el de las métricas de este README) y se publica como `1.0.0-0c5f641`.
+
+**Tags versionados.** `make publish` construye la imagen para `linux/amd64` y `linux/arm64`, así corre igual en una
+PC Intel/AMD, en Windows y en una Mac con Apple Silicon:
 
 | Tag | Qué es |
 |---|---|

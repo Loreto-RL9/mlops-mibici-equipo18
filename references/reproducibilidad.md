@@ -170,3 +170,48 @@ pueden diferir por las versiones de Matplotlib y las fuentes del sistema.
 Se utilizó OpenAI Codex (GPT-6) para asistir en la ejecución de comandos, revisar los
 resultados y redactar este registro. El responsable debe revisar el documento y las
 evidencias antes de incluirlos en la entrega.
+
+---
+
+# Entrega Final — reproducción en un entorno limpio (18-nov-2026)
+
+**Pregunta:** ¿el pipeline completo, corrido desde cero en otra máquina, produce los mismos datos, el mismo modelo y
+las mismas métricas que reportamos en la Fase 2?
+
+**Entorno:** contenedor Linux limpio en la nube (no es la máquina de entrenamiento), Python 3.12.3, uv 0.11.32,
+dependencias instaladas con `uv sync --frozen` desde `uv.lock` (scikit-learn 1.9.1, pandas 3.1.1, numpy 2.5.4,
+MLflow 3.18.0), semilla 42 (`config.SEED`, que fijan Optuna, el bosque, HGB, PCA y los muestreos).
+**Datos:** los mismos 12 CSV mensuales del portal; el entorno no tenía salida al portal y se copiaron de la descarga
+original.
+
+```bash
+make test && make data && make features && make tune && make predict
+```
+
+**Resultado: idéntico.** Los conteos y la huella sha256 de cada versión de datos quedan en MLflow
+(`mibici-fase1-datos`). La tabla `reports/comparacion_modelos_24h.csv` regenerada **no cambió ni un dígito** frente a
+la versión en git (`git diff` vacío).
+
+| Qué | Fase 2 (README) | Entorno limpio | ¿Coincide? |
+|---|---:|---:|---|
+| v0 viajes crudos | 4,497,877 | 4,497,877 (sha256 `5481b46b…`) | Sí |
+| v1 viajes limpios | 4,311,657 | 4,311,657 (`806a17f8…`) | Sí |
+| v2 panel estación-hora | 2,870,312 | 2,870,312 (`2a9817a1…`) | Sí |
+| v4 entrada del modelo | 2,804,652 | 2,804,652 (`c4247f81…`) | Sí |
+| HGB Poisson, MAE validación / prueba | 0.865 / 1.005 | 0.8654 / 1.0054 | Sí |
+| HGB Poisson, sesgo en prueba | −0.228 | −0.2282 | Sí |
+| Bosque aleatorio, MAE validación / prueba | 0.902 / 1.042 | 0.9024 / 1.0416 | Sí |
+| Regresión de Poisson, MAE validación / prueba | 1.207 / 1.342 | 1.2073 / 1.3418 | Sí |
+| Persistencia semanal, MAE prueba | 1.169 | 1.1690 | Sí |
+
+**Diferencia que no afecta los resultados:** en el registro limpio el HGB quedó como **versión 3**, no como la 2. El
+Model Registry numera las versiones en el orden en que se registran las familias. Por eso la API, el contenedor y el
+reporte se refieren al alias **`@champion`** y a su `run_id` (en `models/champion/model_meta.json` y en `GET /modelo`),
+no a un número de versión.
+
+**El servicio también es reproducible:**
+- La API con el campeón exportado devuelve lo mismo que `make predict`: diferencia máxima 0.0 en 500 filas.
+- El entorno de la imagen (sin dependencias de desarrollo, usuario sin root) reproduce el golden set.
+- El CI construye y prueba la imagen con Podman en cada push.
+
+Detalle en [`portabilidad.md`](portabilidad.md).

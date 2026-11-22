@@ -4,7 +4,7 @@
     <img src="https://img.shields.io/badge/CCDS-Project%20template-328F97?logo=cookiecutter" />
 </a>
 
-**TC5044.10 Operaciones de Aprendizaje Automático (MLOps) · Equipo 18 · Fase 2**
+**TC5044.10 Operaciones de Aprendizaje Automático (MLOps) · Equipo 18 · Entrega Final**
 
 Predicción de la **demanda horaria por estación** del sistema de bicicleta pública MiBici (Guadalajara) a partir de
 sus datos abiertos, construida con prácticas de MLOps: estructura Cookiecutter Data Science, código modular,
@@ -29,6 +29,7 @@ justificación de cada regla de limpieza: [`references/diccionario_datos.md`](re
 
 ```bash
 make requirements      # con uv: uv sync --frozen (Python 3.12 y versiones exactas de uv.lock)
+                       # sin uv: pip install -r requirements.txt (exportado de uv.lock, mismas versiones)
 make dvc-pull          # recupera raw, interim y processed desde C:\mlops\files
 make pipeline          # test -> download -> data -> features -> plots -> tune -> predict
 make mlflow-ui         # http://127.0.0.1:8080
@@ -50,7 +51,7 @@ en la configuración local de DVC y no en Git.
 
 | Paso | Comando | Qué hace |
 |---|---|---|
-| Pruebas | `make test` | 19 pruebas con datos sintéticos y un Model Registry temporal (no descargan nada); también corren en el CI |
+| Pruebas | `uv run pytest -q` (o `make test`) | 51 pruebas unitarias y de integración con datos sintéticos (no descargan nada); también corren en el CI |
 | Datos versionados | `make dvc-pull` | Recupera del remoto DVC configurado la versión registrada de `raw`, `interim` y `processed` |
 | Descarga | `make download` | 12 CSV mensuales (urllib y, si el portal lo rechaza, curl) |
 | Limpieza | `make data` | v0 crudo y v1 limpio, registrados en MLflow |
@@ -138,27 +139,108 @@ model.predict(df[model.feature_names_in_])   # df con las columnas de v4
 `python -m mibici.modeling.train --modelo hgb_poisson` reentrena una familia con los mejores hiperparámetros de la
 última búsqueda (leídos de MLflow) y registra una versión nueva; el alias se recalcula.
 
+## Servicio de pronóstico (API)
+
+**Artefacto que sirve la API:** `models:/mibici-demanda-estacion-hora@champion`, el Pipeline de HistGradientBoosting
+Poisson con los hiperparámetros de la Fase 2. En el registro de la Fase 2 es la **versión 2**
+(`models:/mibici-demanda-estacion-hora/2`); al reproducir el pipeline en un entorno limpio quedó como versión 3, con
+métricas idénticas (ver [`references/reproducibilidad.md`](references/reproducibilidad.md)). `make export-model` copia
+esa versión a `models/champion` junto con `model_meta.json` (nombre, versión, `run_id`, fecha y métricas), y
+`GET /modelo` lo devuelve. Esquema de entrada y salida: Swagger en `/docs` y [`docs/openapi.json`](docs/openapi.json).
+
+```bash
+make export-model   # copia @champion del Model Registry a models/champion (+ model_meta.json)
+make serve          # FastAPI en http://127.0.0.1:8000 (documentación interactiva en /docs)
+```
+
+| Endpoint | Qué hace |
+|---|---|
+| `GET /health` | Estado (`ok` o `degradado`), versión servida, edad del modelo y alertas |
+| `GET /modelo` | Metadatos de la versión: hiperparámetros, métricas y de qué run salió |
+| `POST /predict` | Hasta 1,000 filas estación-hora; cada pronóstico vuelve con su llave y su `fuente` |
+
+```json
+POST /predict
+{"filas": [{"estacion_id": 2, "hora": "2026-09-15T08:00:00", "lag_24h": 3, "lag_168h": 4}]}
+```
+
+- **Mismas transformaciones que en entrenamiento:** el calendario sale de `features.calendar_features` y la estación
+  del catálogo versionado; el resto viaja dentro del Pipeline. Una prueba lo verifica y, con el campeón real, la API
+  devuelve exactamente lo mismo que `make predict` (diferencia máxima 0.0 en 500 filas de septiembre).
+- **Modo degradado:** si el modelo no carga, la estación no existe o faltan rezagos, responde con la persistencia
+  semanal (la línea base) y lo marca con `fuente: "fallback"` y el `motivo`.
+- **Log de eventos:** cada petición deja una línea JSON en `logs/predicciones.jsonl` (versión, entradas, salidas,
+  latencia); es la entrada del monitoreo de drift.
+
+## Contenedor (Podman o Docker) y portabilidad
+
+```bash
+make export-model                          # el campeón a models/champion (lo copia la imagen)
+docker build -t mibici-api:latest .        # o: make image (usa Podman si está instalado)
+docker run -p 8000:8000 mibici-api:latest  # o: make run-image; HEALTHCHECK sobre /health
+make smoke                                 # compara la API contra el golden set (reports/golden_set.json)
+make publish DOCKERHUB_USER=<usuario>      # Docker Hub, amd64 + arm64 (antes: docker login)
+```
+
+**Imagen publicada:** [`docker.io/cesarxyz/mibici-api`](https://hub.docker.com/r/cesarxyz/mibici-api)
+(`docker pull cesarxyz/mibici-api:1.0.0`). Hoy trae los tags `1.0.0-331c828`, `1.0.0` y `latest` (amd64), con el campeón
+que se reentrenó en el servidor de César. Ese campeón es provisional: la imagen se reconstruye con `models/champion`
+(run `0c5f641`, el de las métricas de este README) y se publica como `1.0.0-0c5f641`.
+
+**Tags versionados.** `make publish` construye la imagen para `linux/amd64` y `linux/arm64`, así corre igual en una
+PC Intel/AMD, en Windows y en una Mac con Apple Silicon:
+
+| Tag | Qué es |
+|---|---|
+| `1.0.0-<run>` | API 1.0.0 con el modelo del run de MLflow `<run>` (7 caracteres del `run_id`). Es inmutable: sirve para auditar exactamente qué se desplegó |
+| `1.0.0` | Última imagen de la API 1.0.0 |
+| `latest` | Última imagen publicada |
+
+## Monitoreo: data drift y pérdida de desempeño
+
+```bash
+make drift            # línea base (validación jul–ago) vs septiembre real y 3 escenarios sintéticos -> MLflow
+make drift-evidently  # los mismos cortes con el DataDriftPreset de Evidently (reportes HTML)
+make drift-log        # drift de las peticiones reales que guardó la API
+```
+
+| Escenario | Entradas con drift | MAE vs línea base | Alerta | Acción |
+|---|---:|---:|---|---|
+| Septiembre real (estacional, 58 estaciones nuevas) | 2 | 1.16× | desempeño y sesgo | reentrenar con los meses recientes |
+| +60 % de demanda en 30 % de las estaciones | 2 | 1.26× | desempeño | reentrenar |
+| 25 % de filas con rezagos en 0 | 2 | 1.05× | — | revisar el pipeline de features |
+| Cierre de estaciones (drift de concepto) | 0 | 1.04× | sesgo | confirmar con el operador y reentrenar |
+
+Umbrales, método (Wasserstein y Jensen-Shannon, la regla de Evidently) y la política de arranque en frío para las
+estaciones nuevas: [`references/monitoreo.md`](references/monitoreo.md).
+
 ## Estructura del proyecto
 
 ```
 ├── Makefile             <- requirements, test, lint, download, data, features, plots, tune, predict, pipeline
-├── .github/workflows/   <- CI: ruff y pytest en cada push y pull request
+├── Dockerfile           <- Imagen del servicio (Docker o Podman), dos etapas y usuario sin root
+├── .github/workflows/   <- CI (ruff y pytest) y Contenedor (imagen + prueba de humo)
 ├── data/                <- raw, interim y processed con DVC; catálogo external en Git
-├── docs/                <- Documentación generada de Cookiecutter
+├── docs/                <- openapi.json (esquema de la API)
 ├── notebooks/           <- Solo exploración; importan el paquete mibici
 ├── references/          <- ML Canvas, diccionario de datos y verificación de reproducibilidad
 ├── reports/             <- Hallazgos del EDA, selección de modelos, tabla comparativa y figuras
-├── tests/               <- test_data, test_pipeline, test_tune y test_registry (datos sintéticos, conftest.py)
+├── tests/               <- test_data, test_pipeline, test_tune, test_registry y test_api (datos sintéticos)
 └── mibici/              <- Código fuente
     ├── config.py        <- Rutas, fuente, umbrales de limpieza, partición, semilla, horizonte, MLflow
     ├── dataset.py       <- Descarga, lectura, TripCleaner y validación (v0, v1)
     ├── features.py      <- Panel de demanda, calendario, festivos, rezagos y partición (v2, v4)
     ├── tracking.py      <- log_dataset_version(): versionado de datasets en MLflow
     ├── plots.py         <- Figuras del EDA y del pronóstico
+    ├── serving.py       <- Variables de servicio, pronóstico con fallback y log de eventos
+    ├── api.py           <- API FastAPI: /health, /modelo y /predict
+    ├── smoke.py         <- Golden set y pruebas de humo del servicio
+    ├── monitoring.py    <- Drift, escenarios sintéticos, error mensual, alertas y acciones
     └── modeling/
         ├── pipeline.py  <- Pipeline de scikit-learn y StationProfilePCA
         ├── train.py     <- Familias, métricas, reentrenamiento y registro en el Model Registry
         ├── tune.py      <- Búsqueda de hiperparámetros con Optuna
+        ├── export.py    <- Copia del modelo del registro que sirve la API
         └── predict.py   <- Pronósticos con el modelo @champion
 ```
 

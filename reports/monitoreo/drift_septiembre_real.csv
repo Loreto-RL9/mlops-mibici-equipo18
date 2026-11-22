@@ -1,0 +1,13 @@
+columna,tipo,prueba,distancia,drift,psi,media_referencia,media_actual
+capacidad,num,wasserstein_n,0.011,False,0.0005,17.0342,17.0418
+lat,num,wasserstein_n,0.0207,False,0.0016,20.6781,20.6782
+lon,num,wasserstein_n,0.0464,False,0.0029,-103.3608,-103.3622
+lag_24h,num,wasserstein_n,0.1238,True,0.0132,1.3388,1.6306
+lag_168h,num,wasserstein_n,0.094,False,0.0075,1.3228,1.5368
+hora_dia,num,wasserstein_n,0.0077,False,0.0003,13.2332,13.2803
+municipio,cat,jensen_shannon,0.0173,False,,,
+dia_semana,cat,jensen_shannon,0.0568,False,,3.0304,2.9024
+fin_de_semana,cat,jensen_shannon,0.0216,False,,0.2894,0.2666
+festivo,cat,jensen_shannon,0.1318,True,,0.0,0.0343
+salidas_pred,num,wasserstein_n,0.0256,False,0.0013,1.3906,1.4379
+salidas,num,wasserstein_n,0.1459,True,0.0178,1.3301,1.6661

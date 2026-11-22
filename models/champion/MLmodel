@@ -1,0 +1,42 @@
+artifact_path: /home/claude/mlops-mibici-equipo18/mlruns/2/models/m-51f60d1c151a4739838d4cfb68993880/artifacts
+flavors:
+  python_function:
+    code: code
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    predict_fn: predict
+    python_version: 3.12.3
+  sklearn:
+    code: code
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.9.1
+    skops_trusted_types: null
+is_signature_from_type_hint: false
+mlflow_version: 3.18.0
+model_id: m-51f60d1c151a4739838d4cfb68993880
+model_size_bytes: 12238043
+model_uuid: m-51f60d1c151a4739838d4cfb68993880
+prompts: null
+run_id: 0c5f641f513e43ca845f5814dade464a
+saved_input_example_info:
+  artifact_path: input_example.json
+  pandas_orient: split
+  serving_input_path: serving_input_example.json
+  type: dataframe
+signature:
+  inputs: '[{"type": "integer", "name": "hora_dia", "required": true}, {"type": "integer",
+    "name": "dia_semana", "required": true}, {"type": "long", "name": "capacidad",
+    "required": true}, {"type": "double", "name": "lat", "required": true}, {"type":
+    "double", "name": "lon", "required": true}, {"type": "double", "name": "lag_24h",
+    "required": true}, {"type": "double", "name": "lag_168h", "required": true}, {"type":
+    "string", "name": "municipio", "required": true}, {"type": "long", "name": "estacion_id",
+    "required": true}, {"type": "long", "name": "fin_de_semana", "required": true},
+    {"type": "long", "name": "festivo", "required": true}]'
+  outputs: '[{"type": "tensor", "tensor-spec": {"dtype": "float64", "shape": [-1]}}]'
+  params: null
+type_hint_from_example: false
+utc_time_created: '2026-11-18 18:02:28.576920'
